@@ -6,7 +6,7 @@
     <meta name="description" content="Административен панел за рецепти във Вкусно.bg.">
     <title>Админ | Вкусно.bg</title>
   </head>
-  <body>
+  <body data-page-access="auth">
     <div class="top-bar py-2">
       <div class="container d-flex flex-wrap justify-content-between gap-2">
         <span><i class="bi bi-shield-check"></i> Административен изглед</span>
@@ -32,6 +32,7 @@
             <li class="nav-item"><a class="nav-link" data-nav href="profile.html">Профил</a></li>
             <li class="nav-item"><a class="nav-link" data-nav href="admin.html">Админ</a></li>
           </ul>
+          <div class="d-flex gap-2 ms-lg-3" data-auth-nav></div>
         </div>
       </div>
     </nav>

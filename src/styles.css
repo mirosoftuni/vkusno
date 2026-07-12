@@ -62,6 +62,13 @@ a {
   color: var(--vk-green-dark) !important;
 }
 
+.auth-user-pill {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .page-shell {
   padding: 2rem 0 3rem;
 }

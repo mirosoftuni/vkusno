@@ -3,6 +3,13 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './styles.css';
 import { isSupabaseConfigured } from './config/supabase.js';
+import {
+  getAuthNavbarState,
+  getCurrentUser,
+  signInWithPassword,
+  signOut,
+  signUp
+} from './services/authService.js';
 
 void isSupabaseConfigured;
 
@@ -98,8 +105,13 @@ const categoryLinks = [
 
 const categories = [...new Set(recipes.map((recipe) => recipe.category))];
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   setActiveNavigation();
+  const shouldRenderPage = await initAuth();
+  if (!shouldRenderPage) {
+    return;
+  }
+
   renderCategoryPills();
   renderCategoryList();
   renderRecipeCards(recipes);
@@ -112,6 +124,26 @@ document.addEventListener('DOMContentLoaded', () => {
   bindRecipeForm();
 });
 
+async function initAuth() {
+  try {
+    const canRenderPage = await applyPageGuard();
+    if (!canRenderPage) {
+      return false;
+    }
+
+    await renderAuthNavigation();
+    bindLoginForm();
+    bindRegisterForm();
+    bindSignOut();
+
+    return true;
+  } catch (error) {
+    console.error(error);
+    renderAuthNavigationFallback();
+    return true;
+  }
+}
+
 function setActiveNavigation() {
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
@@ -121,6 +153,168 @@ function setActiveNavigation() {
       link.setAttribute('aria-current', 'page');
     }
   });
+}
+
+async function applyPageGuard() {
+  const access = document.body.dataset.pageAccess;
+  if (!access) {
+    return true;
+  }
+
+  const user = await getCurrentUser();
+  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+  if (access === 'guest' && user) {
+    window.location.replace('profile.html');
+    return false;
+  }
+
+  if (access === 'auth' && !user) {
+    window.location.replace(`login.html?next=${encodeURIComponent(currentPage)}`);
+    return false;
+  }
+
+  return true;
+}
+
+async function renderAuthNavigation() {
+  const containers = document.querySelectorAll('[data-auth-nav]');
+  if (!containers.length) return;
+
+  const { user, displayName } = await getAuthNavbarState();
+  const html = user
+    ? `
+      <a class="btn btn-outline-success btn-sm auth-user-pill" href="profile.html">
+        <i class="bi bi-person-circle"></i>
+        ${escapeHtml(displayName)}
+      </a>
+      <button class="btn btn-success btn-sm" type="button" data-sign-out>
+        <i class="bi bi-box-arrow-right"></i>
+        Изход
+      </button>
+    `
+    : `
+      <a class="btn btn-outline-success btn-sm" href="login.html">Вход</a>
+      <a class="btn btn-success btn-sm" href="register.html">Регистрация</a>
+    `;
+
+  containers.forEach((container) => {
+    container.innerHTML = html;
+  });
+}
+
+function renderAuthNavigationFallback() {
+  document.querySelectorAll('[data-auth-nav]').forEach((container) => {
+    container.innerHTML = `
+      <a class="btn btn-outline-success btn-sm" href="login.html">Вход</a>
+      <a class="btn btn-success btn-sm" href="register.html">Регистрация</a>
+    `;
+  });
+}
+
+function bindLoginForm() {
+  const form = document.querySelector('[data-login-form]');
+  if (!form) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setFormLoading(form, true);
+    setFormAlert(form, '', 'success', true);
+
+    try {
+      const email = form.querySelector('#email').value.trim();
+      const password = form.querySelector('#password').value;
+      await signInWithPassword(email, password);
+
+      setFormAlert(form, 'Успешен вход. Пренасочваме към профила...', 'success');
+      const params = new URLSearchParams(window.location.search);
+      window.location.href = params.get('next') || 'profile.html';
+    } catch (error) {
+      setFormAlert(form, getAuthErrorMessage(error), 'danger');
+    } finally {
+      setFormLoading(form, false);
+    }
+  });
+}
+
+function bindRegisterForm() {
+  const form = document.querySelector('[data-register-form]');
+  if (!form) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setFormLoading(form, true);
+    setFormAlert(form, '', 'success', true);
+
+    try {
+      const displayName = form.querySelector('#name').value.trim();
+      const email = form.querySelector('#email').value.trim();
+      const password = form.querySelector('#password').value;
+      const data = await signUp({ email, password, displayName });
+
+      if (data.session) {
+        setFormAlert(form, 'Профилът е създаден. Пренасочваме...', 'success');
+        window.location.href = 'profile.html';
+      } else {
+        setFormAlert(form, 'Регистрацията е успешна. Провери имейла си, за да потвърдиш профила.', 'success');
+      }
+    } catch (error) {
+      setFormAlert(form, getAuthErrorMessage(error), 'danger');
+    } finally {
+      setFormLoading(form, false);
+    }
+  });
+}
+
+function bindSignOut() {
+  document.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-sign-out]');
+    if (!button) return;
+
+    button.disabled = true;
+
+    try {
+      await signOut();
+      window.location.href = 'index.html';
+    } catch (error) {
+      console.error(error);
+      button.disabled = false;
+    }
+  });
+}
+
+function setFormLoading(form, isLoading) {
+  const button = form.querySelector('[data-submit-button]');
+  if (!button) return;
+
+  button.disabled = isLoading;
+  button.dataset.originalText ||= button.textContent.trim();
+  button.textContent = isLoading ? 'Моля, изчакай...' : button.dataset.originalText;
+}
+
+function setFormAlert(form, message, type, hide = false) {
+  const alert = form.querySelector('[data-form-alert]');
+  if (!alert) return;
+
+  alert.textContent = message;
+  alert.className = `alert alert-${type}${hide ? ' d-none' : ''}`;
+}
+
+function getAuthErrorMessage(error) {
+  if (!isSupabaseConfigured) {
+    return 'Supabase не е конфигуриран. Провери env променливите.';
+  }
+
+  return error?.message || 'Възникна грешка. Опитай отново.';
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
 function renderCategoryPills() {

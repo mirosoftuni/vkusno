@@ -6,7 +6,7 @@
     <meta name="description" content="Вход във Вкусно.bg.">
     <title>Вход | Вкусно.bg</title>
   </head>
-  <body>
+  <body data-page-access="guest">
     <div class="top-bar py-2">
       <div class="container d-flex flex-wrap justify-content-between gap-2">
         <span><i class="bi bi-calendar-heart"></i> Нови рецепти всеки ден</span>
@@ -17,7 +17,9 @@
     <nav class="navbar navbar-expand-lg bg-white site-navbar">
       <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="index.html"><span class="brand-mark"><i class="bi bi-egg-fried"></i></span>Вкусно.bg</a>
-        <a class="btn btn-outline-success btn-sm" href="register.html">Регистрация</a>
+        <div data-auth-nav>
+          <a class="btn btn-outline-success btn-sm" href="register.html">Регистрация</a>
+        </div>
       </div>
     </nav>
 
@@ -27,7 +29,7 @@
           <p class="eyebrow mb-1">Потребителски профил</p>
           <h1 class="h3 fw-bold">Вход в профила</h1>
           <p class="form-hint">Демо форма за потребители, които искат да запазват и публикуват рецепти.</p>
-          <form class="mt-4" data-demo-form>
+          <form class="mt-4" data-login-form>
             <div class="mb-3">
               <label class="form-label" for="email">Имейл</label>
               <input class="form-control" id="email" type="email" autocomplete="email" required>
@@ -43,8 +45,8 @@
               </div>
               <a class="link-success" href="#">Забравена парола</a>
             </div>
-            <div class="alert alert-success d-none" data-form-alert role="alert">Успешен демо вход.</div>
-            <button class="btn btn-success w-100" type="submit">Вход</button>
+            <div class="alert d-none" data-form-alert role="alert"></div>
+            <button class="btn btn-success w-100" type="submit" data-submit-button>Вход</button>
           </form>
         </section>
       </div>
