@@ -1,9 +1,12 @@
 :root {
   --vk-green: #2f7d4b;
   --vk-green-dark: #235c39;
+  --vk-red: #b94232;
+  --vk-gold: #d79b2a;
   --vk-ink: #24312a;
   --vk-muted: #66736b;
   --vk-cream: #fff8ed;
+  --vk-paper: #fffdfa;
   --vk-border: #dfe6dd;
 }
 
@@ -14,18 +17,49 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
-.navbar {
+a {
+  text-decoration: none;
+}
+
+.top-bar {
+  background: var(--vk-green-dark);
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.9rem;
+}
+
+.top-bar a {
+  color: #fff;
+}
+
+.site-navbar {
   border-bottom: 1px solid var(--vk-border);
+  box-shadow: 0 8px 24px rgba(35, 92, 57, 0.07);
 }
 
 .navbar-brand {
-  font-weight: 800;
   color: var(--vk-green-dark);
+  font-size: 1.45rem;
+  font-weight: 850;
 }
 
-.nav-link.active {
+.brand-mark {
+  width: 38px;
+  height: 38px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--vk-green);
+  color: #fff;
+}
+
+.nav-link {
+  color: var(--vk-ink);
+  font-weight: 650;
+}
+
+.nav-link.active,
+.nav-link:hover {
   color: var(--vk-green-dark) !important;
-  font-weight: 700;
 }
 
 .page-shell {
@@ -33,36 +67,45 @@ body {
 }
 
 .hero {
-  min-height: 460px;
+  min-height: 430px;
   display: grid;
   align-items: end;
   background:
-    linear-gradient(90deg, rgba(19, 30, 24, 0.78), rgba(19, 30, 24, 0.32)),
+    linear-gradient(90deg, rgba(19, 30, 24, 0.82), rgba(19, 30, 24, 0.26)),
     url("https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1800&q=80") center/cover;
   color: #fff;
 }
 
 .hero-inner {
   max-width: 760px;
-  padding: 5rem 0;
+  padding: 4.5rem 0 5rem;
 }
 
 .hero h1 {
   max-width: 720px;
-  font-size: clamp(2.4rem, 4vw, 4.5rem);
+  font-size: clamp(2.3rem, 4vw, 4.4rem);
   font-weight: 850;
   line-height: 1.02;
 }
 
 .hero p {
   max-width: 620px;
-  color: rgba(255, 255, 255, 0.86);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.eyebrow {
+  color: var(--vk-green);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .search-panel,
 .content-panel,
 .auth-panel,
-.profile-summary {
+.profile-summary,
+.portal-panel {
   background: #fff;
   border: 1px solid var(--vk-border);
   border-radius: 8px;
@@ -76,6 +119,75 @@ body {
   z-index: 2;
 }
 
+.portal-panel {
+  padding: 1.25rem;
+}
+
+.portal-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.portal-layout {
+  align-items: start;
+}
+
+.category-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.72rem 0;
+  color: var(--vk-ink);
+  border-bottom: 1px solid var(--vk-border);
+  font-weight: 650;
+}
+
+.category-link:last-child {
+  border-bottom: 0;
+}
+
+.category-link i:first-child {
+  color: var(--vk-green);
+}
+
+.top-recipe {
+  display: flex;
+  gap: 0.85rem;
+  padding: 0.85rem 0;
+  color: var(--vk-ink);
+  border-bottom: 1px solid var(--vk-border);
+}
+
+.top-recipe:last-child {
+  border-bottom: 0;
+}
+
+.top-recipe-rank {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--vk-cream);
+  color: var(--vk-red);
+  font-weight: 850;
+}
+
+.top-recipe-body {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.top-recipe-body small {
+  color: var(--vk-muted);
+}
+
 .section-title {
   display: flex;
   align-items: end;
@@ -84,9 +196,10 @@ body {
   margin-bottom: 1.25rem;
 }
 
+.section-title h1,
 .section-title h2 {
   margin: 0;
-  font-weight: 800;
+  font-weight: 850;
 }
 
 .recipe-card {
@@ -161,7 +274,7 @@ body {
 }
 
 .auth-page {
-  min-height: calc(100vh - 68px);
+  min-height: calc(100vh - 116px);
   display: grid;
   align-items: center;
   padding: 3rem 0;
@@ -215,12 +328,35 @@ body {
   vertical-align: middle;
 }
 
-footer {
-  border-top: 1px solid var(--vk-border);
-  background: #fff;
+.site-footer {
+  color: rgba(255, 255, 255, 0.82);
+  background: #1f3226;
+}
+
+.site-footer a {
+  color: rgba(255, 255, 255, 0.86);
+}
+
+.site-footer-title {
+  color: #fff;
+  font-weight: 800;
+}
+
+.footer-bottom {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 991.98px) {
+  .portal-sidebar {
+    order: 2;
+  }
 }
 
 @media (max-width: 767.98px) {
+  .top-bar {
+    display: none;
+  }
+
   .hero {
     min-height: 520px;
   }
