@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="bg">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Вкусно е българско демо приложение за рецепти с търсене, категории и потребителски профили.">
+    <title>Вкусно | Рецепти за всеки ден</title>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg bg-white sticky-top">
+      <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
+          <i class="bi bi-egg-fried"></i>
+          Вкусно
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Отвори меню">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            <li class="nav-item"><a class="nav-link" data-nav href="index.html">Рецепти</a></li>
+            <li class="nav-item"><a class="nav-link" data-nav href="recipe-form.html">Добави рецепта</a></li>
+            <li class="nav-item"><a class="nav-link" data-nav href="profile.html">Профил</a></li>
+            <li class="nav-item"><a class="nav-link" data-nav href="admin.html">Админ</a></li>
+          </ul>
+          <div class="d-flex gap-2 ms-lg-3">
+            <a class="btn btn-outline-success btn-sm" href="login.html">Вход</a>
+            <a class="btn btn-success btn-sm" href="register.html">Регистрация</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="container">
+        <div class="hero-inner">
+          <p class="text-uppercase fw-bold small mb-2">Домашни рецепти на български</p>
+          <h1>Готви спокойно, търси бързо, запази любимото.</h1>
+          <p class="lead mt-3">Подредена колекция от идеи за закуска, обяд, вечеря и десерт с ясни стъпки и практични филтри.</p>
+          <a class="btn btn-success btn-lg mt-3" href="recipe-form.html">
+            <i class="bi bi-plus-circle"></i>
+            Добави рецепта
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="container page-shell">
+      <section class="search-panel mb-5">
+        <form class="row g-2" data-search-form>
+          <div class="col-lg-9">
+            <label class="visually-hidden" for="recipeSearch">Търсене</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+              <input class="form-control" id="recipeSearch" type="search" placeholder="Търси по име, категория или описание" data-search-input>
+            </div>
+          </div>
+          <div class="col-lg-3 d-grid">
+            <button class="btn btn-success" type="submit">Търси</button>
+          </div>
+        </form>
+        <div class="d-flex flex-wrap gap-2 mt-3" data-categories></div>
+      </section>
+
+      <section>
+        <div class="section-title">
+          <div>
+            <p class="text-success fw-bold small text-uppercase mb-1">Избрано днес</p>
+            <h2>Популярни рецепти</h2>
+          </div>
+          <a class="btn btn-outline-success" href="recipe-form.html">
+            <i class="bi bi-pencil-square"></i>
+            Сподели твоя
+          </a>
+        </div>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4" data-recipe-list></div>
+      </section>
+    </main>
+
+    <footer class="py-4">
+      <div class="container d-flex flex-column flex-md-row justify-content-between gap-2">
+        <span>© 2026 Вкусно</span>
+        <span class="text-secondary">Демо Vanilla JavaScript приложение</span>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

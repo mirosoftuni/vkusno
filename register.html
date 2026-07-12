@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="bg">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Създаване на профил във Вкусно.">
+    <title>Регистрация | Вкусно</title>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg bg-white">
+      <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="index.html"><i class="bi bi-egg-fried"></i>Вкусно</a>
+        <a class="btn btn-outline-success btn-sm" href="login.html">Вход</a>
+      </div>
+    </nav>
+
+    <main class="auth-page">
+      <div class="container">
+        <section class="auth-panel">
+          <h1 class="h3 fw-bold">Създай профил</h1>
+          <p class="form-hint">Регистрация за автори, които искат да публикуват домашни рецепти.</p>
+          <form class="mt-4" data-demo-form>
+            <div class="mb-3">
+              <label class="form-label" for="name">Име</label>
+              <input class="form-control" id="name" type="text" autocomplete="name" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="email">Имейл</label>
+              <input class="form-control" id="email" type="email" autocomplete="email" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="password">Парола</label>
+              <input class="form-control" id="password" type="password" autocomplete="new-password" minlength="6" required>
+            </div>
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="terms" required>
+              <label class="form-check-label" for="terms">Съгласен съм с условията</label>
+            </div>
+            <div class="alert alert-success d-none" data-form-alert role="alert">Профилът е създаден в демо режим.</div>
+            <button class="btn btn-success w-100" type="submit">Регистрация</button>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

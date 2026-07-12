@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="bg">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Вход във Вкусно.">
+    <title>Вход | Вкусно</title>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg bg-white">
+      <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="index.html"><i class="bi bi-egg-fried"></i>Вкусно</a>
+        <a class="btn btn-outline-success btn-sm" href="register.html">Регистрация</a>
+      </div>
+    </nav>
+
+    <main class="auth-page">
+      <div class="container">
+        <section class="auth-panel">
+          <h1 class="h3 fw-bold">Вход в профила</h1>
+          <p class="form-hint">Демо форма за потребители, които искат да запазват и публикуват рецепти.</p>
+          <form class="mt-4" data-demo-form>
+            <div class="mb-3">
+              <label class="form-label" for="email">Имейл</label>
+              <input class="form-control" id="email" type="email" autocomplete="email" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="password">Парола</label>
+              <input class="form-control" id="password" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="remember">
+                <label class="form-check-label" for="remember">Запомни ме</label>
+              </div>
+              <a class="link-success" href="#">Забравена парола</a>
+            </div>
+            <div class="alert alert-success d-none" data-form-alert role="alert">Успешен демо вход.</div>
+            <button class="btn btn-success w-100" type="submit">Вход</button>
+          </form>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="bg">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Потребителски профил във Вкусно.">
+    <title>Профил | Вкусно</title>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg bg-white sticky-top">
+      <div class="container">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="index.html"><i class="bi bi-egg-fried"></i>Вкусно</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Отвори меню">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            <li class="nav-item"><a class="nav-link" data-nav href="index.html">Рецепти</a></li>
+            <li class="nav-item"><a class="nav-link" data-nav href="recipe-form.html">Добави рецепта</a></li>
+            <li class="nav-item"><a class="nav-link" data-nav href="profile.html">Профил</a></li>
+            <li class="nav-item"><a class="nav-link" data-nav href="admin.html">Админ</a></li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <header class="profile-cover">
+      <div class="container pb-4">
+        <div class="d-flex align-items-end gap-3">
+          <img class="profile-avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80" alt="Профилна снимка">
+          <div>
+            <h1 class="mb-1">Мария Петрова</h1>
+            <p class="mb-0">Автор на домашни рецепти и любител на сезонното готвене.</p>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="container page-shell">
+      <div class="row g-4">
+        <section class="col-lg-4">
+          <div class="profile-summary">
+            <h2 class="h4">Статистика</h2>
+            <div class="row text-center mt-3">
+              <div class="col">
+                <strong class="d-block fs-3">12</strong>
+                <span class="text-secondary">рецепти</span>
+              </div>
+              <div class="col">
+                <strong class="d-block fs-3">284</strong>
+                <span class="text-secondary">харесвания</span>
+              </div>
+            </div>
+            <a class="btn btn-success w-100 mt-4" href="recipe-form.html">
+              <i class="bi bi-plus-circle"></i>
+              Нова рецепта
+            </a>
+          </div>
+        </section>
+        <section class="col-lg-8">
+          <div class="content-panel">
+            <div class="section-title mb-3">
+              <h2 class="h4">Моите рецепти</h2>
+            </div>
+            <div class="list-group list-group-flush" data-profile-recipes></div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
