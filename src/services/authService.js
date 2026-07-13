@@ -43,9 +43,29 @@ export async function getProfile(userId) {
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('display_name, bio, avatar_path')
+    .select('id, display_name, bio, avatar_path, updated_at')
     .eq('id', userId)
     .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
+export async function updateProfile(userId, values) {
+  const client = requireSupabaseClient();
+  const { data, error } = await client
+    .from('profiles')
+    .update({
+      display_name: values.displayName,
+      bio: values.bio,
+      avatar_path: values.avatarPath
+    })
+    .eq('id', userId)
+    .select('id, display_name, bio, avatar_path, updated_at')
+    .single();
 
   if (error) {
     throw error;

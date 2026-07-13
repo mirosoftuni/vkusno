@@ -12,7 +12,7 @@
         <span><i class="bi bi-calendar-heart"></i> Нови рецепти всеки ден</span>
         <span class="d-flex gap-3">
           <a href="recipe-form.html"><i class="bi bi-plus-circle"></i> Добави рецепта</a>
-          <a href="login.html"><i class="bi bi-person-circle"></i> Вход</a>
+          <a href="index.html#categories"><i class="bi bi-grid"></i> Категории</a>
         </span>
       </div>
     </div>
@@ -40,10 +40,11 @@
     <header class="profile-cover">
       <div class="container pb-4">
         <div class="d-flex align-items-end gap-3">
-          <img class="profile-avatar" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80" alt="Профилна снимка">
+          <img class="profile-avatar" data-profile-avatar src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80" alt="Профилна снимка">
           <div>
-            <h1 class="mb-1">Мария Петрова</h1>
-            <p class="mb-0">Автор на домашни рецепти и любител на сезонното готвене.</p>
+            <span class="badge text-bg-success mb-2" data-profile-role>Потребител</span>
+            <h1 class="mb-1" data-profile-name>Профил</h1>
+            <p class="mb-0" data-profile-bio>Зареждаме профила...</p>
           </div>
         </div>
       </div>
@@ -52,16 +53,16 @@
     <main class="container page-shell">
       <div class="row g-4">
         <section class="col-lg-4">
-          <div class="profile-summary">
+          <div class="profile-summary mb-4">
             <h2 class="h4">Статистика</h2>
             <div class="row text-center mt-3">
               <div class="col">
-                <strong class="d-block fs-3">12</strong>
+                <strong class="d-block fs-3" data-profile-recipes-count>0</strong>
                 <span class="text-secondary">рецепти</span>
               </div>
               <div class="col">
-                <strong class="d-block fs-3">284</strong>
-                <span class="text-secondary">харесвания</span>
+                <strong class="d-block fs-3" data-profile-role-short>user</strong>
+                <span class="text-secondary">роля</span>
               </div>
             </div>
             <a class="btn btn-success w-100 mt-4" href="recipe-form.html">
@@ -69,13 +70,42 @@
               Нова рецепта
             </a>
           </div>
+
+          <form class="profile-summary" data-profile-form>
+            <h2 class="h4 mb-3">Редакция на профил</h2>
+            <div class="mb-3">
+              <label class="form-label" for="display_name">Име</label>
+              <input class="form-control" id="display_name" type="text" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="bio">Кратко описание</label>
+              <textarea class="form-control" id="bio" rows="4" placeholder="Разкажи накратко за себе си и любимите си рецепти."></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="avatar">Профилна снимка</label>
+              <input class="form-control" id="avatar" type="file" accept="image/*">
+              <p class="form-hint mt-2 mb-0">Снимката се качва в bucket avatars, в папка с твоя user id.</p>
+            </div>
+            <div class="alert d-none" data-form-alert role="alert"></div>
+            <button class="btn btn-success w-100" type="submit" data-submit-button>
+              <i class="bi bi-check2-circle"></i>
+              Запази профила
+            </button>
+          </form>
         </section>
+
         <section class="col-lg-8">
           <div class="content-panel">
             <div class="section-title mb-3">
-              <h2 class="h4">Моите рецепти</h2>
+              <div>
+                <p class="eyebrow mb-1">Авторски рецепти</p>
+                <h2 class="h4">Моите рецепти</h2>
+              </div>
             </div>
-            <div class="list-group list-group-flush" data-profile-recipes></div>
+            <div class="list-group list-group-flush" data-profile-recipes>
+              <div class="loading-line"></div>
+              <div class="loading-line short"></div>
+            </div>
           </div>
         </section>
       </div>

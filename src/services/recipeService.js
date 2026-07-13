@@ -1,6 +1,6 @@
-import { getPublicStorageUrl, isSupabaseConfigured, supabase } from '../config/supabase.js';
+import { isSupabaseConfigured, supabase } from '../config/supabase.js';
+import { getRecipeImagePublicUrl, uploadRecipeImage } from './storageService.js';
 
-const IMAGE_BUCKET = 'recipe-images';
 const DUPLICATE_ROW_CODE = '23505';
 
 const RECIPE_SELECT = `
@@ -75,7 +75,7 @@ function normalizeRecipe(row) {
     totalMinutes: (row.prep_minutes || 0) + (row.cook_minutes || 0),
     servings: row.servings,
     difficulty: row.difficulty,
-    imageUrl: row.external_image_url || getPublicStorageUrl(IMAGE_BUCKET, coverImagePath),
+    imageUrl: row.external_image_url || getRecipeImagePublicUrl(coverImagePath),
     coverImagePath,
     isFeatured: row.is_featured,
     createdAt: row.created_at,
@@ -247,9 +247,28 @@ export async function getCurrentUserRole(userId) {
   return data?.role || null;
 }
 
+export async function getRecipesByAuthor(userId) {
+  if (!userId) {
+    return [];
+  }
+
+  const client = requireSupabaseClient();
+  const { data, error } = await client
+    .from('recipes')
+    .select(RECIPE_SELECT)
+    .eq('author_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).map(normalizeRecipe);
+}
+
 export async function createRecipe({ userId, values, categoryIds, imageFile }) {
   const client = requireSupabaseClient();
-  const imagePayload = await uploadRecipeImage(userId, imageFile);
+  const imagePayload = await uploadRecipeImagePayload(userId, imageFile);
   const baseSlug = slugifyTitle(values.title);
 
   for (let attempt = 1; attempt <= 5; attempt += 1) {
@@ -281,7 +300,7 @@ export async function createRecipe({ userId, values, categoryIds, imageFile }) {
 
 export async function updateRecipe({ userId, recipeId, values, categoryIds, imageFile }) {
   const client = requireSupabaseClient();
-  const imagePayload = await uploadRecipeImage(userId, imageFile);
+  const imagePayload = await uploadRecipeImagePayload(userId, imageFile);
   const baseSlug = slugifyTitle(values.title);
 
   for (let attempt = 1; attempt <= 5; attempt += 1) {
@@ -458,30 +477,16 @@ async function replaceRecipeCategories(recipeId, categoryIds) {
   }
 }
 
-async function uploadRecipeImage(userId, imageFile) {
+async function uploadRecipeImagePayload(userId, imageFile) {
   if (!imageFile || !imageFile.size) {
     return {};
   }
 
-  const client = requireSupabaseClient();
-  const extension = imageFile.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
-  const fileName = `${Date.now()}-${crypto.randomUUID()}.${extension}`;
-  const path = `${userId}/${fileName}`;
-
-  const { error } = await client.storage
-    .from(IMAGE_BUCKET)
-    .upload(path, imageFile, {
-      cacheControl: '3600',
-      upsert: false
-    });
-
-  if (error) {
-    throw error;
-  }
+  const { path, publicUrl } = await uploadRecipeImage(userId, imageFile);
 
   return {
     cover_image_path: path,
-    external_image_url: getPublicStorageUrl(IMAGE_BUCKET, path)
+    external_image_url: publicUrl
   };
 }
 

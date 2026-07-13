@@ -6,9 +6,11 @@ import { isSupabaseConfigured } from './config/supabase.js';
 import {
   getAuthNavbarState,
   getCurrentUser,
+  getProfile,
   signInWithPassword,
   signOut,
-  signUp
+  signUp,
+  updateProfile
 } from './services/authService.js';
 import {
   createRecipe,
@@ -20,11 +22,13 @@ import {
   getNewRecipes,
   getPopularToday,
   getPublishedRecipes,
+  getRecipesByAuthor,
   getRecipeDetailsById,
   getRecipeDetailsBySlug,
   updateRecipe,
   upsertRecipeReview
 } from './services/recipeService.js';
+import { getAvatarPublicUrl, uploadAvatar } from './services/storageService.js';
 import { renderPopularRecipeItem, renderRecipeCard } from './components/recipeCard.js';
 
 void isSupabaseConfigured;
@@ -139,7 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   await renderRecipeDetails();
-  renderProfileRecipes();
+  await initProfilePage();
   renderAdminRows();
   bindDemoForms();
   await bindRecipeForm();
@@ -619,22 +623,138 @@ function renderStaticRecipeDetails() {
   `;
 }
 
-function renderProfileRecipes() {
+async function initProfilePage() {
   const container = document.querySelector('[data-profile-recipes]');
   if (!container) return;
 
-  container.innerHTML = recipes.slice(0, 3).map((recipe) => `
-    <a class="list-group-item list-group-item-action d-flex align-items-center gap-3" href="recipe.html?id=${recipe.id}">
-      <img src="${recipe.image}" alt="" class="profile-recipe-thumb">
-      <span class="flex-grow-1">
-        <strong class="d-block">${recipe.title}</strong>
-        <small class="text-secondary">${recipe.category} · ${recipe.time} мин</small>
-      </span>
-      <i class="bi bi-chevron-right"></i>
-    </a>
-  `).join('');
+  const form = document.querySelector('[data-profile-form]');
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  try {
+    const [profile, role, userRecipes] = await Promise.all([
+      getProfile(user.id),
+      getCurrentUserRole(user.id),
+      getRecipesByAuthor(user.id)
+    ]);
+
+    renderProfileHeader(user, profile, role);
+    fillProfileForm(form, profile, user);
+    renderProfileStats(userRecipes, role);
+    renderProfileRecipeList(container, userRecipes);
+    bindProfileForm(form, user, profile);
+  } catch (error) {
+    console.error(error);
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="bi bi-exclamation-triangle"></i>
+        <p class="text-secondary mb-0">Не успяхме да заредим профила.</p>
+      </div>
+    `;
+  }
 }
 
+function renderProfileHeader(user, profile, role) {
+  const name = profile?.display_name || user.email?.split('@')[0] || 'Потребител';
+  const bio = profile?.bio || 'Домашен кулинар във Вкусно.bg.';
+  const avatarUrl = getProfileAvatarUrl(profile?.avatar_path);
+
+  document.querySelector('[data-profile-name]')?.replaceChildren(document.createTextNode(name));
+  document.querySelector('[data-profile-bio]')?.replaceChildren(document.createTextNode(bio));
+  document.querySelector('[data-profile-role]')?.replaceChildren(document.createTextNode(getRoleLabel(role)));
+
+  const avatar = document.querySelector('[data-profile-avatar]');
+  if (avatar) {
+    avatar.src = avatarUrl;
+    avatar.alt = `Профилна снимка на ${name}`;
+  }
+}
+
+function fillProfileForm(form, profile, user) {
+  if (!form) return;
+
+  form.querySelector('#display_name').value = profile?.display_name || user.email?.split('@')[0] || '';
+  form.querySelector('#bio').value = profile?.bio || '';
+  form.dataset.avatarPath = profile?.avatar_path || '';
+}
+
+function renderProfileStats(userRecipes, role) {
+  const count = document.querySelector('[data-profile-recipes-count]');
+  const shortRole = document.querySelector('[data-profile-role-short]');
+
+  if (count) count.textContent = String(userRecipes.length);
+  if (shortRole) shortRole.textContent = role || 'user';
+}
+
+function renderProfileRecipeList(container, userRecipes) {
+  if (!userRecipes.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="bi bi-journal-plus"></i>
+        <p class="text-secondary mb-0">Все още нямаш добавени рецепти.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = userRecipes.map((recipe) => {
+    const totalMinutes = recipe.totalMinutes || recipe.prepMinutes || recipe.cookMinutes;
+    const imageUrl = recipe.imageUrl || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=600&q=80';
+
+    return `
+      <a class="list-group-item list-group-item-action d-flex align-items-center gap-3" href="recipe.html?slug=${encodeURIComponent(recipe.slug)}">
+        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(recipe.title)}" class="profile-recipe-thumb">
+        <span class="flex-grow-1">
+          <strong class="d-block">${escapeHtml(recipe.title)}</strong>
+          <small class="text-secondary">${escapeHtml(recipe.categories[0]?.name || 'Рецепта')} · ${totalMinutes} мин · ${getDifficultyLabel(recipe.difficulty)}</small>
+        </span>
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    `;
+  }).join('');
+}
+
+function bindProfileForm(form, user, profile) {
+  if (!form || form.dataset.bound === 'true') return;
+  form.dataset.bound = 'true';
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setFormLoading(form, true);
+    setFormAlert(form, '', 'success', true);
+
+    try {
+      const avatarFile = form.querySelector('#avatar')?.files?.[0] || null;
+      const uploadedAvatar = avatarFile ? await uploadAvatar(user.id, avatarFile) : null;
+      const avatarPath = uploadedAvatar?.path || form.dataset.avatarPath || profile?.avatar_path || '';
+
+      const updatedProfile = await updateProfile(user.id, {
+        displayName: form.querySelector('#display_name').value.trim(),
+        bio: form.querySelector('#bio').value.trim(),
+        avatarPath
+      });
+
+      form.dataset.avatarPath = updatedProfile.avatar_path || '';
+      renderProfileHeader(user, updatedProfile, await getCurrentUserRole(user.id));
+      await renderAuthNavigation();
+      setFormAlert(form, 'Профилът е обновен успешно.', 'success');
+    } catch (error) {
+      console.error(error);
+      setFormAlert(form, error?.message || 'Не успяхме да обновим профила.', 'danger');
+    } finally {
+      setFormLoading(form, false);
+    }
+  });
+}
+
+function getProfileAvatarUrl(path) {
+  return getAvatarPublicUrl(path)
+    || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80';
+}
+
+function getRoleLabel(role) {
+  return role === 'admin' ? 'Администратор' : 'Потребител';
+}
 function renderAdminRows() {
   const tbody = document.querySelector('[data-admin-recipes]');
   if (!tbody) return;
