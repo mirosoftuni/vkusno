@@ -338,6 +338,26 @@ a {
   margin-bottom: 0.65rem;
 }
 
+.recipe-instructions {
+  line-height: 1.8;
+  white-space: pre-line;
+}
+
+.review-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.review-item {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--vk-border);
+}
+
+.review-item:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
 .auth-page {
   min-height: calc(100vh - 116px);
   display: grid;

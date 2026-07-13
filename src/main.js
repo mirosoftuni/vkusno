@@ -14,7 +14,10 @@ import {
   getCategories,
   getNewRecipes,
   getPopularToday,
-  getPublishedRecipes
+  getPublishedRecipes,
+  getRecipeDetailsById,
+  getRecipeDetailsBySlug,
+  upsertRecipeReview
 } from './services/recipeService.js';
 import { renderPopularRecipeItem, renderRecipeCard } from './components/recipeCard.js';
 
@@ -129,7 +132,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     bindSearch();
   }
 
-  renderRecipeDetails();
+  await renderRecipeDetails();
   renderProfileRecipes();
   renderAdminRows();
   bindDemoForms();
@@ -564,7 +567,7 @@ function renderTopRecipes() {
     `).join('');
 }
 
-function renderRecipeDetails() {
+function renderStaticRecipeDetails() {
   const container = document.querySelector('[data-recipe-details]');
   if (!container) return;
 
@@ -713,4 +716,217 @@ function bindRecipeForm() {
       alert.classList.remove('d-none');
     }
   });
+}
+
+async function renderRecipeDetails() {
+  const container = document.querySelector('[data-recipe-details]');
+  if (!container) return;
+
+  container.innerHTML = '<div class="content-panel loading-card"></div>';
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get('slug');
+    const id = params.get('id');
+    const recipe = slug
+      ? await getRecipeDetailsBySlug(slug)
+      : await getRecipeDetailsById(id);
+
+    if (!recipe) {
+      renderRecipeNotFound(container);
+      return;
+    }
+
+    const user = await getCurrentUser();
+
+    document.title = `${recipe.title} | Вкусно.bg`;
+    container.innerHTML = renderRecipeDetailHtml(recipe, user);
+    bindReviewForm(recipe, user);
+  } catch (error) {
+    console.error(error);
+    container.innerHTML = `
+      <div class="content-panel empty-state">
+        <i class="bi bi-exclamation-triangle"></i>
+        <h1 class="h4 mb-1">Не успяхме да заредим рецептата</h1>
+        <p class="text-secondary mb-0">Провери връзката със Supabase и опитай отново.</p>
+      </div>
+    `;
+  }
+}
+
+function renderRecipeDetailHtml(recipe, user) {
+  const totalMinutes = recipe.totalMinutes || recipe.prepMinutes || recipe.cookMinutes;
+  const difficulty = getDifficultyLabel(recipe.difficulty);
+  const imageUrl = recipe.imageUrl || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1400&q=80';
+  const currentUserReview = user
+    ? recipe.reviews.find((review) => review.userId === user.id)
+    : null;
+
+  return `
+    <div class="recipe-hero row g-0">
+      <div class="col-lg-6">
+        <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(recipe.title)}" class="recipe-hero-image">
+      </div>
+      <div class="col-lg-6 p-4 p-lg-5">
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          ${recipe.categories.map((category) => `<span class="badge text-bg-success">${escapeHtml(category.name)}</span>`).join('')}
+        </div>
+        <h1>${escapeHtml(recipe.title)}</h1>
+        <p class="lead text-secondary">${escapeHtml(recipe.description)}</p>
+        <div class="recipe-stats">
+          <span><i class="bi bi-clock"></i> ${totalMinutes} мин</span>
+          <span><i class="bi bi-people"></i> ${recipe.servings} порции</span>
+          <span><i class="bi bi-bar-chart"></i> ${difficulty}</span>
+          <span><i class="bi bi-star-fill"></i> ${formatAverageRating(recipe.averageRating)} (${recipe.reviewCount})</span>
+        </div>
+        <p class="mt-4 mb-0 text-secondary">Автор: <strong>${escapeHtml(recipe.authorName)}</strong></p>
+      </div>
+    </div>
+    <div class="row g-4 mt-4">
+      <section class="col-lg-4">
+        <div class="content-panel">
+          <h2 class="h4">Продукти</h2>
+          <ul class="ingredient-list">
+            ${recipe.ingredients.map((ingredient) => `<li>${escapeHtml(ingredient)}</li>`).join('')}
+          </ul>
+        </div>
+      </section>
+      <section class="col-lg-8">
+        <div class="content-panel">
+          <h2 class="h4">Начин на приготвяне</h2>
+          <p class="mb-0 recipe-instructions">${escapeHtml(recipe.instructions)}</p>
+        </div>
+      </section>
+    </div>
+    <div class="row g-4 mt-4">
+      <section class="col-lg-5">
+        <div class="content-panel">
+          <h2 class="h4">Оцени рецептата</h2>
+          ${renderReviewFormHtml(user, currentUserReview)}
+        </div>
+      </section>
+      <section class="col-lg-7">
+        <div class="content-panel">
+          <div class="section-title mb-3">
+            <div>
+              <p class="eyebrow mb-1">Средна оценка ${formatAverageRating(recipe.averageRating)}</p>
+              <h2 class="h4">Коментари</h2>
+            </div>
+          </div>
+          ${renderReviewsHtml(recipe.reviews)}
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderReviewFormHtml(user, currentUserReview) {
+  if (!user) {
+    return `
+      <p class="text-secondary">Влез в профила си, за да оставиш оценка и коментар.</p>
+      <a class="btn btn-success" href="login.html?next=${encodeURIComponent(window.location.pathname.split('/').pop() + window.location.search)}">
+        Вход
+      </a>
+    `;
+  }
+
+  return `
+    <form data-review-form>
+      <div class="mb-3">
+        <label class="form-label" for="rating">Оценка</label>
+        <select class="form-select" id="rating" required>
+          ${[5, 4, 3, 2, 1].map((rating) => `
+            <option value="${rating}" ${currentUserReview?.rating === rating ? 'selected' : ''}>${rating} от 5</option>
+          `).join('')}
+        </select>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="comment">Коментар</label>
+        <textarea class="form-control" id="comment" rows="4" placeholder="Как се получи рецептата?" required>${escapeHtml(currentUserReview?.comment || '')}</textarea>
+      </div>
+      <div class="alert d-none" data-form-alert role="alert"></div>
+      <button class="btn btn-success w-100" type="submit" data-submit-button>
+        ${currentUserReview ? 'Обнови оценката' : 'Публикувай оценка'}
+      </button>
+    </form>
+  `;
+}
+
+function renderReviewsHtml(reviews) {
+  if (!reviews.length) {
+    return '<p class="text-secondary mb-0">Все още няма коментари. Бъди първият, който ще оцени рецептата.</p>';
+  }
+
+  return `
+    <div class="review-list">
+      ${reviews.map((review) => `
+        <article class="review-item">
+          <div class="d-flex justify-content-between gap-3">
+            <strong>${escapeHtml(review.authorName)}</strong>
+            <span class="text-warning"><i class="bi bi-star-fill"></i> ${review.rating}</span>
+          </div>
+          <p class="mb-1">${escapeHtml(review.comment)}</p>
+          <small class="text-secondary">${formatDate(review.createdAt)}</small>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function bindReviewForm(recipe, user) {
+  const form = document.querySelector('[data-review-form]');
+  if (!form || !user) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    setFormLoading(form, true);
+    setFormAlert(form, '', 'success', true);
+
+    try {
+      await upsertRecipeReview({
+        recipeId: recipe.id,
+        userId: user.id,
+        rating: Number(form.querySelector('#rating').value),
+        comment: form.querySelector('#comment').value.trim()
+      });
+
+      setFormAlert(form, 'Оценката е запазена успешно.', 'success');
+      await renderRecipeDetails();
+    } catch (error) {
+      console.error(error);
+      setFormAlert(form, error?.message || 'Не успяхме да запазим оценката.', 'danger');
+    } finally {
+      setFormLoading(form, false);
+    }
+  });
+}
+
+function renderRecipeNotFound(container) {
+  container.innerHTML = `
+    <div class="content-panel empty-state">
+      <i class="bi bi-search"></i>
+      <h1 class="h4 mb-1">Рецептата не е намерена</h1>
+      <p class="text-secondary mb-0">Върни се към всички рецепти и избери друга идея.</p>
+    </div>
+  `;
+}
+
+function getDifficultyLabel(value) {
+  return {
+    easy: 'Лесна',
+    medium: 'Средна',
+    hard: 'Трудна'
+  }[value] || 'Лесна';
+}
+
+function formatAverageRating(value) {
+  return value ? value.toFixed(1) : '0.0';
+}
+
+function formatDate(value) {
+  return new Intl.DateTimeFormat('bg-BG', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  }).format(new Date(value));
 }

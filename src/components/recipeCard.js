@@ -35,7 +35,7 @@ export function renderRecipeCard(recipe) {
             <span><i class="bi bi-people"></i> ${recipe.servings} порции</span>
             <span><i class="bi bi-bar-chart"></i> ${difficulty}</span>
           </div>
-          <a href="recipe.html?id=${recipe.id}" class="btn btn-outline-success mt-3">
+          <a href="recipe.html?slug=${encodeURIComponent(recipe.slug)}" class="btn btn-outline-success mt-3">
             Виж рецептата
           </a>
         </div>
@@ -48,7 +48,7 @@ export function renderPopularRecipeItem(recipe, index) {
   const totalMinutes = recipe.totalMinutes || recipe.prepMinutes || recipe.cookMinutes;
 
   return `
-    <a class="top-recipe" href="recipe.html?id=${recipe.id}">
+    <a class="top-recipe" href="recipe.html?slug=${encodeURIComponent(recipe.slug)}">
       <span class="top-recipe-rank">${index + 1}</span>
       <span class="top-recipe-body">
         <strong>${escapeHtml(recipe.title)}</strong>
