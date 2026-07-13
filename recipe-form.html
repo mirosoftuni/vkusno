@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Форма за добавяне на рецепта във Вкусно.bg.">
+    <meta name="description" content="Форма за добавяне и редакция на рецепта във Вкусно.bg.">
     <title>Добави рецепта | Вкусно.bg</title>
   </head>
   <body data-page-access="auth">
@@ -40,8 +40,8 @@
     <main class="container page-shell">
       <div class="section-title">
         <div>
-          <p class="eyebrow mb-1">Нова публикация</p>
-          <h1>Добави рецепта</h1>
+          <p class="eyebrow mb-1" data-form-eyebrow>Нова публикация</p>
+          <h1 data-form-title>Добави рецепта</h1>
         </div>
       </div>
 
@@ -55,54 +55,81 @@
               </div>
               <div class="mb-3">
                 <label class="form-label" for="description">Кратко описание</label>
-                <textarea class="form-control" id="description" rows="3" required></textarea>
+                <textarea class="form-control" id="description" rows="3" placeholder="Едно-две изречения, които описват вкуса и повода." required></textarea>
               </div>
               <div class="mb-3">
                 <label class="form-label" for="ingredients">Продукти</label>
-                <textarea class="form-control" id="ingredients" rows="6" placeholder="Всеки продукт на нов ред" required></textarea>
+                <textarea class="form-control" id="ingredients" rows="7" placeholder="Всеки продукт на нов ред" required></textarea>
               </div>
-              <div class="mb-3">
-                <label class="form-label" for="steps">Начин на приготвяне</label>
-                <textarea class="form-control" id="steps" rows="7" placeholder="Опиши стъпките ясно и последователно" required></textarea>
+              <div class="mb-0">
+                <label class="form-label" for="instructions">Начин на приготвяне</label>
+                <textarea class="form-control" id="instructions" rows="9" placeholder="Опиши стъпките ясно и последователно." required></textarea>
               </div>
             </div>
           </div>
+
           <aside class="col-lg-4">
             <div class="portal-panel mb-3">
-              <h2 class="portal-panel-title"><i class="bi bi-sliders"></i> Данни за рецепта</h2>
-              <div class="mb-3">
-                <label class="form-label" for="category">Категория</label>
-                <select class="form-select" id="category" required>
-                  <option value="">Избери</option>
-                  <option>Салати</option>
-                  <option>Супи</option>
-                  <option>Основни ястия</option>
-                  <option>Постни ястия</option>
-                  <option>Традиционни</option>
-                  <option>Десерти</option>
-                </select>
+              <h2 class="portal-panel-title"><i class="bi bi-sliders"></i> Данни за рецептата</h2>
+
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label" for="prep_minutes">Подготовка</label>
+                  <div class="input-group">
+                    <input class="form-control" id="prep_minutes" type="number" min="0" step="5" value="10" required>
+                    <span class="input-group-text">мин</span>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <label class="form-label" for="cook_minutes">Готвене</label>
+                  <div class="input-group">
+                    <input class="form-control" id="cook_minutes" type="number" min="0" step="5" value="30" required>
+                    <span class="input-group-text">мин</span>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <label class="form-label" for="servings">Порции</label>
+                  <input class="form-control" id="servings" type="number" min="1" max="30" value="4" required>
+                </div>
+                <div class="col-6">
+                  <label class="form-label" for="difficulty">Трудност</label>
+                  <select class="form-select" id="difficulty" required>
+                    <option value="easy">Лесна</option>
+                    <option value="medium">Средна</option>
+                    <option value="hard">Трудна</option>
+                  </select>
+                </div>
               </div>
-              <div class="mb-3">
-                <label class="form-label" for="time">Време в минути</label>
-                <input class="form-control" id="time" type="number" min="5" step="5" required>
+            </div>
+
+            <div class="portal-panel mb-3">
+              <h2 class="portal-panel-title"><i class="bi bi-tags"></i> Категории</h2>
+              <div class="category-check-grid" data-form-categories>
+                <div class="loading-line short"></div>
+                <div class="loading-line"></div>
               </div>
-              <div class="mb-3">
-                <label class="form-label" for="difficulty">Трудност</label>
-                <select class="form-select" id="difficulty" required>
-                  <option>Лесна</option>
-                  <option>Средна</option>
-                  <option>Трудна</option>
-                </select>
+            </div>
+
+            <div class="portal-panel mb-3">
+              <h2 class="portal-panel-title"><i class="bi bi-image"></i> Снимка</h2>
+              <div class="current-image-preview d-none mb-3" data-current-image></div>
+              <label class="form-label" for="image">Качи снимка</label>
+              <input class="form-control" id="image" type="file" accept="image/*">
+              <p class="form-hint mt-2 mb-0">При редакция избери файл само ако искаш да смениш снимката.</p>
+            </div>
+
+            <div class="portal-panel">
+              <div class="alert d-none" data-form-alert role="alert"></div>
+              <div class="d-grid gap-2">
+                <button class="btn btn-success" type="submit" data-submit-button>
+                  <i class="bi bi-send"></i>
+                  Публикувай
+                </button>
+                <button class="btn btn-outline-danger d-none" type="button" data-delete-recipe>
+                  <i class="bi bi-trash"></i>
+                  Изтрий рецептата
+                </button>
               </div>
-              <div class="mb-3">
-                <label class="form-label" for="image">Снимка</label>
-                <input class="form-control" id="image" type="url" placeholder="https://...">
-              </div>
-              <div class="alert alert-success d-none" data-form-alert role="alert"></div>
-              <button class="btn btn-success w-100" type="submit">
-                <i class="bi bi-send"></i>
-                Публикувай
-              </button>
             </div>
           </aside>
         </div>
@@ -113,7 +140,7 @@
       <div class="container">
         <div class="footer-bottom py-3 d-flex flex-column flex-md-row justify-content-between gap-2">
           <span>© 2026 Вкусно.bg</span>
-          <span>Статична форма за рецепти</span>
+          <span>Кулинарен портал за домашни рецепти</span>
         </div>
       </div>
     </footer>

@@ -11,12 +11,18 @@ import {
   signUp
 } from './services/authService.js';
 import {
+  createRecipe,
+  deleteRecipe,
   getCategories,
+  getCurrentUserRole,
+  getEditableRecipeById,
+  getEditableRecipeBySlug,
   getNewRecipes,
   getPopularToday,
   getPublishedRecipes,
   getRecipeDetailsById,
   getRecipeDetailsBySlug,
+  updateRecipe,
   upsertRecipeReview
 } from './services/recipeService.js';
 import { renderPopularRecipeItem, renderRecipeCard } from './components/recipeCard.js';
@@ -136,7 +142,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderProfileRecipes();
   renderAdminRows();
   bindDemoForms();
-  bindRecipeForm();
+  await bindRecipeForm();
 });
 
 async function initAuth() {
@@ -703,18 +709,190 @@ function bindDemoForms() {
   });
 }
 
-function bindRecipeForm() {
+async function bindRecipeForm() {
   const form = document.querySelector('[data-recipe-form]');
   if (!form) return;
 
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const title = form.querySelector('#title').value.trim();
-    const alert = form.querySelector('[data-form-alert]');
-    if (alert) {
-      alert.textContent = title ? `Рецептата "${title}" е подготвена за публикуване.` : 'Рецептата е подготвена за публикуване.';
-      alert.classList.remove('d-none');
+  const user = await getCurrentUser();
+  if (!user) return;
+
+  const params = new URLSearchParams(window.location.search);
+  const recipeSlug = params.get('slug');
+  const recipeId = params.get('id');
+  const isEditMode = Boolean(recipeSlug || recipeId);
+  const categoryContainer = form.querySelector('[data-form-categories]');
+  const deleteButton = form.querySelector('[data-delete-recipe]');
+  let currentRecipe = null;
+  let currentUserRole = null;
+
+  try {
+    const categoriesList = await getCategories();
+    renderRecipeFormCategories(categoryContainer, categoriesList);
+
+    if (isEditMode) {
+      currentRecipe = recipeSlug
+        ? await getEditableRecipeBySlug(recipeSlug)
+        : await getEditableRecipeById(recipeId);
+
+      if (!currentRecipe) {
+        setFormAlert(form, 'Рецептата не е намерена или нямаш достъп до нея.', 'danger');
+        disableRecipeForm(form);
+        return;
+      }
+
+      currentUserRole = await getCurrentUserRole(user.id);
+      const canManage = currentRecipe.authorId === user.id || currentUserRole === 'admin';
+
+      if (!canManage) {
+        setFormAlert(form, 'Само авторът или администратор може да редактира тази рецепта.', 'danger');
+        disableRecipeForm(form);
+        return;
+      }
+
+      fillRecipeForm(form, currentRecipe);
+      renderCurrentRecipeImage(form, currentRecipe.imageUrl);
+      updateRecipeFormHeader('Редакция', 'Редактирай рецепта', 'Запази промените');
+      deleteButton?.classList.remove('d-none');
     }
+  } catch (error) {
+    console.error(error);
+    setFormAlert(form, error?.message || 'Не успяхме да заредим формата.', 'danger');
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    try {
+      setFormLoading(form, true);
+      setFormAlert(form, '', 'success', true);
+
+      const values = collectRecipeFormValues(form);
+      const categoryIds = getSelectedRecipeCategoryIds(form);
+      const imageFile = form.querySelector('#image')?.files?.[0] || null;
+
+      if (!categoryIds.length) {
+        throw new Error('Избери поне една категория.');
+      }
+
+      const savedRecipe = currentRecipe
+        ? await updateRecipe({
+          userId: user.id,
+          recipeId: currentRecipe.id,
+          values: {
+            ...values,
+            authorId: currentRecipe.authorId
+          },
+          categoryIds,
+          imageFile
+        })
+        : await createRecipe({
+          userId: user.id,
+          values,
+          categoryIds,
+          imageFile
+        });
+
+      setFormAlert(form, 'Рецептата е запазена успешно.', 'success');
+      window.location.href = `recipe.html?slug=${encodeURIComponent(savedRecipe.slug)}`;
+    } catch (error) {
+      console.error(error);
+      setFormAlert(form, error?.message || 'Не успяхме да запазим рецептата.', 'danger');
+    } finally {
+      setFormLoading(form, false);
+    }
+  });
+
+  deleteButton?.addEventListener('click', async () => {
+    if (!currentRecipe || !window.confirm('Сигурни ли сте, че искате да изтриете тази рецепта?')) {
+      return;
+    }
+
+    try {
+      deleteButton.disabled = true;
+      await deleteRecipe(currentRecipe.id);
+      window.location.href = 'index.html';
+    } catch (error) {
+      console.error(error);
+      setFormAlert(form, error?.message || 'Не успяхме да изтрием рецептата.', 'danger');
+      deleteButton.disabled = false;
+    }
+  });
+}
+
+function renderRecipeFormCategories(container, categoriesList) {
+  if (!container) return;
+
+  container.innerHTML = categoriesList.map((category) => `
+    <label class="form-check category-check">
+      <input class="form-check-input" type="checkbox" name="categories" value="${category.id}">
+      <span class="form-check-label">${escapeHtml(category.name)}</span>
+    </label>
+  `).join('');
+}
+
+function fillRecipeForm(form, recipe) {
+  form.querySelector('#title').value = recipe.title || '';
+  form.querySelector('#description').value = recipe.description || '';
+  form.querySelector('#ingredients').value = (recipe.ingredients || []).join('\n');
+  form.querySelector('#instructions').value = recipe.instructions || '';
+  form.querySelector('#prep_minutes').value = recipe.prepMinutes || 0;
+  form.querySelector('#cook_minutes').value = recipe.cookMinutes || 0;
+  form.querySelector('#servings').value = recipe.servings || 1;
+  form.querySelector('#difficulty').value = recipe.difficulty || 'easy';
+
+  const selectedCategoryIds = new Set((recipe.categoryIds || []).map(String));
+  form.querySelectorAll('input[name="categories"]').forEach((checkbox) => {
+    checkbox.checked = selectedCategoryIds.has(checkbox.value);
+  });
+}
+
+function collectRecipeFormValues(form) {
+  return {
+    title: form.querySelector('#title').value.trim(),
+    description: form.querySelector('#description').value.trim(),
+    ingredients: form.querySelector('#ingredients').value
+      .split('\n')
+      .map((ingredient) => ingredient.trim())
+      .filter(Boolean),
+    instructions: form.querySelector('#instructions').value.trim(),
+    prepMinutes: Number(form.querySelector('#prep_minutes').value) || 0,
+    cookMinutes: Number(form.querySelector('#cook_minutes').value) || 0,
+    servings: Number(form.querySelector('#servings').value) || 1,
+    difficulty: form.querySelector('#difficulty').value
+  };
+}
+
+function getSelectedRecipeCategoryIds(form) {
+  return [...form.querySelectorAll('input[name="categories"]:checked')]
+    .map((checkbox) => checkbox.value);
+}
+
+function renderCurrentRecipeImage(form, imageUrl) {
+  const container = form.querySelector('[data-current-image]');
+  if (!container || !imageUrl) return;
+
+  container.classList.remove('d-none');
+  container.innerHTML = `<img src="${escapeHtml(imageUrl)}" alt="Текуща снимка на рецептата">`;
+}
+
+function updateRecipeFormHeader(eyebrow, title, buttonText) {
+  const eyebrowElement = document.querySelector('[data-form-eyebrow]');
+  const titleElement = document.querySelector('[data-form-title]');
+  const submitButton = document.querySelector('[data-submit-button]');
+
+  if (eyebrowElement) eyebrowElement.textContent = eyebrow;
+  if (titleElement) titleElement.textContent = title;
+  if (submitButton) {
+    submitButton.innerHTML = `<i class="bi bi-check2-circle"></i> ${buttonText}`;
+    submitButton.dataset.originalText = buttonText;
+  }
+
+  document.title = `${title} | Вкусно.bg`;
+}
+
+function disableRecipeForm(form) {
+  form.querySelectorAll('input, textarea, select, button').forEach((control) => {
+    control.disabled = true;
   });
 }
 
@@ -738,9 +916,11 @@ async function renderRecipeDetails() {
     }
 
     const user = await getCurrentUser();
+    const role = user ? await getCurrentUserRole(user.id) : null;
+    const canManage = Boolean(user && (user.id === recipe.authorId || role === 'admin'));
 
     document.title = `${recipe.title} | Вкусно.bg`;
-    container.innerHTML = renderRecipeDetailHtml(recipe, user);
+    container.innerHTML = renderRecipeDetailHtml(recipe, user, canManage);
     bindReviewForm(recipe, user);
   } catch (error) {
     console.error(error);
@@ -754,7 +934,7 @@ async function renderRecipeDetails() {
   }
 }
 
-function renderRecipeDetailHtml(recipe, user) {
+function renderRecipeDetailHtml(recipe, user, canManage = false) {
   const totalMinutes = recipe.totalMinutes || recipe.prepMinutes || recipe.cookMinutes;
   const difficulty = getDifficultyLabel(recipe.difficulty);
   const imageUrl = recipe.imageUrl || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=1400&q=80';
@@ -780,6 +960,12 @@ function renderRecipeDetailHtml(recipe, user) {
           <span><i class="bi bi-star-fill"></i> ${formatAverageRating(recipe.averageRating)} (${recipe.reviewCount})</span>
         </div>
         <p class="mt-4 mb-0 text-secondary">Автор: <strong>${escapeHtml(recipe.authorName)}</strong></p>
+        ${canManage ? `
+          <a class="btn btn-outline-success mt-4" href="recipe-form.html?slug=${encodeURIComponent(recipe.slug)}">
+            <i class="bi bi-pencil-square"></i>
+            Редактирай
+          </a>
+        ` : ''}
       </div>
     </div>
     <div class="row g-4 mt-4">

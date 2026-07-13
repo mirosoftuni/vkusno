@@ -358,6 +358,43 @@ a {
   border-bottom: 0;
 }
 
+.category-check-grid {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.category-check {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 42px;
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--vk-border);
+  border-radius: 8px;
+  background: #fffdfa;
+  font-weight: 650;
+}
+
+.category-check .form-check-input {
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.current-image-preview {
+  overflow: hidden;
+  border: 1px solid var(--vk-border);
+  border-radius: 8px;
+  background: var(--vk-cream);
+}
+
+.current-image-preview img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  display: block;
+}
+
 .auth-page {
   min-height: calc(100vh - 116px);
   display: grid;

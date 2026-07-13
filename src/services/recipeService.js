@@ -1,4 +1,7 @@
-import { isSupabaseConfigured, supabase } from '../config/supabase.js';
+import { getPublicStorageUrl, isSupabaseConfigured, supabase } from '../config/supabase.js';
+
+const IMAGE_BUCKET = 'recipe-images';
+const DUPLICATE_ROW_CODE = '23505';
 
 const RECIPE_SELECT = `
   id,
@@ -39,6 +42,7 @@ const RECIPE_DETAIL_SELECT = `
   is_featured,
   created_at,
   recipe_categories (
+    category_id,
     categories (
       id,
       name,
@@ -59,6 +63,7 @@ function normalizeRecipe(row) {
   const categories = (row.recipe_categories || [])
     .map((item) => item.categories)
     .filter(Boolean);
+  const coverImagePath = row.cover_image_path || '';
 
   return {
     id: row.id,
@@ -70,11 +75,14 @@ function normalizeRecipe(row) {
     totalMinutes: (row.prep_minutes || 0) + (row.cook_minutes || 0),
     servings: row.servings,
     difficulty: row.difficulty,
-    imageUrl: row.external_image_url || '',
-    coverImagePath: row.cover_image_path || '',
+    imageUrl: row.external_image_url || getPublicStorageUrl(IMAGE_BUCKET, coverImagePath),
+    coverImagePath,
     isFeatured: row.is_featured,
     createdAt: row.created_at,
-    categories
+    categories,
+    categoryIds: (row.recipe_categories || [])
+      .map((item) => item.category_id || item.categories?.id)
+      .filter(Boolean)
   };
 }
 
@@ -102,6 +110,52 @@ function filterRecipes(recipes, { search = '', categorySlug = 'all' } = {}) {
 
     return matchesSearch && matchesCategory;
   });
+}
+
+export function slugifyTitle(title) {
+  const transliterationMap = {
+    а: 'a',
+    б: 'b',
+    в: 'v',
+    г: 'g',
+    д: 'd',
+    е: 'e',
+    ж: 'zh',
+    з: 'z',
+    и: 'i',
+    й: 'y',
+    к: 'k',
+    л: 'l',
+    м: 'm',
+    н: 'n',
+    о: 'o',
+    п: 'p',
+    р: 'r',
+    с: 's',
+    т: 't',
+    у: 'u',
+    ф: 'f',
+    х: 'h',
+    ц: 'ts',
+    ч: 'ch',
+    ш: 'sh',
+    щ: 'sht',
+    ъ: 'a',
+    ь: 'y',
+    ю: 'yu',
+    я: 'ya'
+  };
+
+  return title
+    .trim()
+    .toLocaleLowerCase('bg-BG')
+    .split('')
+    .map((letter) => transliterationMap[letter] || letter)
+    .join('')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-')
+    || `recepta-${Date.now()}`;
 }
 
 export async function getCategories() {
@@ -159,35 +213,113 @@ export async function getRecipeById(id) {
 }
 
 export async function getRecipeDetailsBySlug(slug) {
-  const client = requireSupabaseClient();
-  const { data, error } = await client
-    .from('recipes')
-    .select(RECIPE_DETAIL_SELECT)
-    .eq('slug', slug)
-    .eq('is_published', true)
-    .maybeSingle();
-
-  if (error) {
-    throw error;
-  }
-
-  return data ? enrichRecipeDetails(data) : null;
+  return getRecipeDetails('slug', slug, true);
 }
 
 export async function getRecipeDetailsById(id) {
+  return getRecipeDetails('id', id, true);
+}
+
+export async function getEditableRecipeBySlug(slug) {
+  return getRecipeDetails('slug', slug, false);
+}
+
+export async function getEditableRecipeById(id) {
+  return getRecipeDetails('id', id, false);
+}
+
+export async function getCurrentUserRole(userId) {
+  if (!userId) {
+    return null;
+  }
+
   const client = requireSupabaseClient();
   const { data, error } = await client
-    .from('recipes')
-    .select(RECIPE_DETAIL_SELECT)
-    .eq('id', id)
-    .eq('is_published', true)
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', userId)
     .maybeSingle();
 
   if (error) {
     throw error;
   }
 
-  return data ? enrichRecipeDetails(data) : null;
+  return data?.role || null;
+}
+
+export async function createRecipe({ userId, values, categoryIds, imageFile }) {
+  const client = requireSupabaseClient();
+  const imagePayload = await uploadRecipeImage(userId, imageFile);
+  const baseSlug = slugifyTitle(values.title);
+
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    const slug = attempt === 1 ? baseSlug : `${baseSlug}-${attempt}`;
+    const { data, error } = await client
+      .from('recipes')
+      .insert({
+        ...toRecipeRow(values),
+        ...imagePayload,
+        author_id: userId,
+        slug,
+        is_published: true
+      })
+      .select('id, slug')
+      .single();
+
+    if (!error) {
+      await replaceRecipeCategories(data.id, categoryIds);
+      return data;
+    }
+
+    if (error.code !== DUPLICATE_ROW_CODE || attempt === 5) {
+      throw error;
+    }
+  }
+
+  throw new Error('Не успяхме да създадем уникален адрес за рецептата.');
+}
+
+export async function updateRecipe({ userId, recipeId, values, categoryIds, imageFile }) {
+  const client = requireSupabaseClient();
+  const imagePayload = await uploadRecipeImage(userId, imageFile);
+  const baseSlug = slugifyTitle(values.title);
+
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    const slug = attempt === 1 ? baseSlug : `${baseSlug}-${attempt}`;
+    const { data, error } = await client
+      .from('recipes')
+      .update({
+        ...toRecipeRow(values),
+        ...imagePayload,
+        slug
+      })
+      .eq('id', recipeId)
+      .select('id, slug')
+      .single();
+
+    if (!error) {
+      await replaceRecipeCategories(data.id, categoryIds);
+      return data;
+    }
+
+    if (error.code !== DUPLICATE_ROW_CODE || attempt === 5) {
+      throw error;
+    }
+  }
+
+  throw new Error('Не успяхме да обновим адреса на рецептата.');
+}
+
+export async function deleteRecipe(recipeId) {
+  const client = requireSupabaseClient();
+  const { error } = await client
+    .from('recipes')
+    .delete()
+    .eq('id', recipeId);
+
+  if (error) {
+    throw error;
+  }
 }
 
 export async function upsertRecipeReview({ recipeId, userId, rating, comment }) {
@@ -211,6 +343,26 @@ export async function upsertRecipeReview({ recipeId, userId, rating, comment }) 
   }
 
   return data;
+}
+
+async function getRecipeDetails(column, value, publishedOnly) {
+  const client = requireSupabaseClient();
+  let query = client
+    .from('recipes')
+    .select(RECIPE_DETAIL_SELECT)
+    .eq(column, value);
+
+  if (publishedOnly) {
+    query = query.eq('is_published', true);
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  return data ? enrichRecipeDetails(data) : null;
 }
 
 async function enrichRecipeDetails(row) {
@@ -275,4 +427,73 @@ async function getProfilesByIds(ids) {
   });
 
   return profileMap;
+}
+
+async function replaceRecipeCategories(recipeId, categoryIds) {
+  const client = requireSupabaseClient();
+  const selectedIds = [...new Set((categoryIds || []).map(Number).filter(Boolean))];
+
+  const { error: deleteError } = await client
+    .from('recipe_categories')
+    .delete()
+    .eq('recipe_id', recipeId);
+
+  if (deleteError) {
+    throw deleteError;
+  }
+
+  if (!selectedIds.length) {
+    return;
+  }
+
+  const { error: insertError } = await client
+    .from('recipe_categories')
+    .insert(selectedIds.map((categoryId) => ({
+      recipe_id: recipeId,
+      category_id: categoryId
+    })));
+
+  if (insertError) {
+    throw insertError;
+  }
+}
+
+async function uploadRecipeImage(userId, imageFile) {
+  if (!imageFile || !imageFile.size) {
+    return {};
+  }
+
+  const client = requireSupabaseClient();
+  const extension = imageFile.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+  const fileName = `${Date.now()}-${crypto.randomUUID()}.${extension}`;
+  const path = `${userId}/${fileName}`;
+
+  const { error } = await client.storage
+    .from(IMAGE_BUCKET)
+    .upload(path, imageFile, {
+      cacheControl: '3600',
+      upsert: false
+    });
+
+  if (error) {
+    throw error;
+  }
+
+  return {
+    cover_image_path: path,
+    external_image_url: getPublicStorageUrl(IMAGE_BUCKET, path)
+  };
+}
+
+function toRecipeRow(values) {
+  return {
+    title: values.title,
+    description: values.description,
+    ingredients: values.ingredients,
+    instructions: values.instructions,
+    prep_minutes: values.prepMinutes,
+    cook_minutes: values.cookMinutes,
+    servings: values.servings,
+    difficulty: values.difficulty
+  };
 }
