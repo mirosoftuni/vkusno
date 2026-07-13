@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Вкусно.bg е статичен демо портал за рецепти с категории, топ рецепти и български интерфейс.">
+    <meta name="description" content="Вкусно.bg е кулинарен портал с български рецепти, категории, търсене и любими идеи за всеки ден.">
     <title>Вкусно.bg | Рецепти за всеки ден</title>
   </head>
   <body>
@@ -30,7 +30,7 @@
           <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
             <li class="nav-item"><a class="nav-link" data-nav href="index.html">Рецепти</a></li>
             <li class="nav-item"><a class="nav-link" href="index.html#categories">Категории</a></li>
-            <li class="nav-item"><a class="nav-link" href="index.html#top">Топ рецепти</a></li>
+            <li class="nav-item"><a class="nav-link" href="index.html#popular">Популярни</a></li>
             <li class="nav-item"><a class="nav-link" data-nav href="recipe-form.html">Добави рецепта</a></li>
             <li class="nav-item"><a class="nav-link" data-nav href="profile.html">Профил</a></li>
             <li class="nav-item"><a class="nav-link" data-nav href="admin.html">Админ</a></li>
@@ -48,7 +48,7 @@
         <div class="hero-inner">
           <p class="text-uppercase fw-bold small mb-2">Кулинарен портал на български</p>
           <h1>Рецепти, идеи и вдъхновение за вкусна домашна кухня.</h1>
-          <p class="lead mt-3">Подредена статична основа за сайт с категории, рецепти, топ класация и удобна навигация на всички екрани.</p>
+          <p class="lead mt-3">Търси по име или описание, избери категория и открий нови рецепти от общността на Вкусно.bg.</p>
           <a class="btn btn-success btn-lg mt-3" href="recipe-form.html">
             <i class="bi bi-plus-circle"></i>
             Добави рецепта
@@ -64,7 +64,7 @@
             <label class="visually-hidden" for="recipeSearch">Търсене</label>
             <div class="input-group">
               <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
-              <input class="form-control" id="recipeSearch" type="search" placeholder="Търси по име, категория или описание" data-search-input>
+              <input class="form-control" id="recipeSearch" type="search" placeholder="Търси по име или описание" data-search-input>
             </div>
           </div>
           <div class="col-lg-3 d-grid">
@@ -78,28 +78,37 @@
         <aside class="col-lg-3 portal-sidebar" id="categories">
           <div class="portal-panel">
             <h2 class="portal-panel-title"><i class="bi bi-grid"></i> Категории</h2>
-            <div data-category-list></div>
+            <div data-category-list>
+              <div class="loading-line"></div>
+              <div class="loading-line short"></div>
+            </div>
           </div>
         </aside>
 
         <section class="col-lg-6">
           <div class="section-title">
             <div>
-              <p class="eyebrow mb-1">Избрано днес</p>
-              <h2>Най-нови рецепти</h2>
+              <p class="eyebrow mb-1">От Supabase</p>
+              <h2>Нови рецепти</h2>
             </div>
             <a class="btn btn-outline-success" href="recipe-form.html">
               <i class="bi bi-pencil-square"></i>
               Сподели твоя
             </a>
           </div>
-          <div class="row row-cols-1 row-cols-md-2 g-4" data-recipe-list></div>
+          <div class="row row-cols-1 row-cols-md-2 g-4" data-recipe-list>
+            <div class="col"><div class="content-panel loading-card"></div></div>
+            <div class="col"><div class="content-panel loading-card"></div></div>
+          </div>
         </section>
 
-        <aside class="col-lg-3" id="top">
+        <aside class="col-lg-3" id="popular">
           <div class="portal-panel">
-            <h2 class="portal-panel-title"><i class="bi bi-trophy"></i> Топ рецепти</h2>
-            <div data-top-recipes></div>
+            <h2 class="portal-panel-title"><i class="bi bi-trophy"></i> Популярни днес</h2>
+            <div data-popular-recipes>
+              <div class="loading-line"></div>
+              <div class="loading-line short"></div>
+            </div>
           </div>
         </aside>
       </div>
@@ -110,7 +119,7 @@
         <div class="row g-4 pb-4">
           <div class="col-md-5">
             <h2 class="site-footer-title h5">Вкусно.bg</h2>
-            <p class="mb-0">Статичен shell за кулинарен портал с български labels, Bootstrap компоненти и responsive layout.</p>
+            <p class="mb-0">Кулинарен портал с български рецепти, Supabase данни, Bootstrap компоненти и responsive layout.</p>
           </div>
           <div class="col-md-3">
             <h3 class="site-footer-title h6">Навигация</h3>
@@ -122,7 +131,7 @@
           </div>
           <div class="col-md-4">
             <h3 class="site-footer-title h6">Категории</h3>
-            <p class="mb-0">Салати, супи, основни ястия, постни рецепти, десерти и традиционна кухня.</p>
+            <p class="mb-0">Салати, супи, основни ястия, постни рецепти, десерти, печива и още домашни идеи.</p>
           </div>
         </div>
         <div class="footer-bottom py-3 d-flex flex-column flex-md-row justify-content-between gap-2">

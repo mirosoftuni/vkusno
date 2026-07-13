@@ -154,6 +154,12 @@ a {
   font-weight: 650;
 }
 
+.category-button {
+  width: 100%;
+  background: transparent;
+  text-align: left;
+}
+
 .category-link:last-child {
   border-bottom: 0;
 }
@@ -193,6 +199,58 @@ a {
 
 .top-recipe-body small {
   color: var(--vk-muted);
+}
+
+.empty-state {
+  display: grid;
+  min-height: 220px;
+  place-items: center;
+  text-align: center;
+}
+
+.empty-state i {
+  color: var(--vk-green);
+  font-size: 2rem;
+}
+
+.loading-card {
+  min-height: 320px;
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-line,
+.loading-card::before {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #eef3ed, #f8faf6, #eef3ed);
+  background-size: 200% 100%;
+  animation: loading-pulse 1.2s ease-in-out infinite;
+}
+
+.loading-line {
+  height: 18px;
+  margin-bottom: 0.85rem;
+}
+
+.loading-line.short {
+  width: 68%;
+}
+
+.loading-card::before {
+  content: "";
+  position: absolute;
+  inset: 1.25rem;
+}
+
+@keyframes loading-pulse {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
 }
 
 .section-title {

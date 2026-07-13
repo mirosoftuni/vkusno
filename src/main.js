@@ -10,6 +10,13 @@ import {
   signOut,
   signUp
 } from './services/authService.js';
+import {
+  getCategories,
+  getNewRecipes,
+  getPopularToday,
+  getPublishedRecipes
+} from './services/recipeService.js';
+import { renderPopularRecipeItem, renderRecipeCard } from './components/recipeCard.js';
 
 void isSupabaseConfigured;
 
@@ -112,14 +119,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  renderCategoryPills();
-  renderCategoryList();
-  renderRecipeCards(recipes);
-  renderTopRecipes();
+  if (isHomePage()) {
+    await initHomePage();
+  } else {
+    renderCategoryPills();
+    renderCategoryList();
+    renderRecipeCards(recipes);
+    renderTopRecipes();
+    bindSearch();
+  }
+
   renderRecipeDetails();
   renderProfileRecipes();
   renderAdminRows();
-  bindSearch();
   bindDemoForms();
   bindRecipeForm();
 });
@@ -153,6 +165,172 @@ function setActiveNavigation() {
       link.setAttribute('aria-current', 'page');
     }
   });
+}
+
+function isHomePage() {
+  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  return currentPage === 'index.html' && document.querySelector('[data-popular-recipes]');
+}
+
+async function initHomePage() {
+  const state = {
+    categories: [],
+    search: '',
+    categorySlug: 'all'
+  };
+
+  try {
+    state.categories = await getCategories();
+    renderHomeCategories(state.categories, state.categorySlug);
+    bindHomeSearch(state);
+    await renderHomeRecipeSections(state);
+  } catch (error) {
+    console.error(error);
+    renderHomeError();
+  }
+}
+
+async function renderHomeRecipeSections(state) {
+  setRecipeListLoading();
+
+  const [recipesFromSearch, newRecipes, popularRecipes] = await Promise.all([
+    getPublishedRecipes({ search: state.search, categorySlug: state.categorySlug }),
+    getNewRecipes(6),
+    getPopularToday(5)
+  ]);
+
+  const list = state.search || state.categorySlug !== 'all'
+    ? recipesFromSearch
+    : newRecipes;
+
+  renderHomeRecipeCards(list);
+  renderPopularRecipes(popularRecipes);
+}
+
+function renderHomeCategories(categoriesList, activeSlug) {
+  const pillsContainer = document.querySelector('[data-categories]');
+  const listContainer = document.querySelector('[data-category-list]');
+
+  if (pillsContainer) {
+    pillsContainer.innerHTML = [
+      { name: 'Всички', slug: 'all' },
+      ...categoriesList
+    ].map((category) => `
+      <button class="btn ${category.slug === activeSlug ? 'btn-success' : 'btn-outline-success'} btn-sm rounded-pill" type="button" data-home-category="${category.slug}">
+        ${escapeHtml(category.name)}
+      </button>
+    `).join('');
+  }
+
+  if (listContainer) {
+    listContainer.innerHTML = categoriesList.map((category) => `
+      <button class="category-link category-button" type="button" data-home-category="${category.slug}">
+        <span><i class="bi bi-tag"></i> ${escapeHtml(category.name)}</span>
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    `).join('');
+  }
+}
+
+function renderHomeRecipeCards(list) {
+  const container = document.querySelector('[data-recipe-list]');
+  if (!container) return;
+
+  if (!list.length) {
+    container.innerHTML = `
+      <div class="col-12">
+        <div class="content-panel empty-state">
+          <i class="bi bi-search"></i>
+          <h2 class="h5 mb-1">Няма намерени рецепти</h2>
+          <p class="text-secondary mb-0">Пробвай с друга дума или избери различна категория.</p>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.map(renderRecipeCard).join('');
+}
+
+function renderPopularRecipes(list) {
+  const container = document.querySelector('[data-popular-recipes]');
+  if (!container) return;
+
+  container.innerHTML = list.length
+    ? list.map(renderPopularRecipeItem).join('')
+    : '<p class="text-secondary mb-0">Все още няма популярни рецепти.</p>';
+}
+
+function bindHomeSearch(state) {
+  const form = document.querySelector('[data-search-form]');
+  const input = document.querySelector('[data-search-input]');
+  const categoryRoot = document.querySelector('main');
+  if (!form || !input || !categoryRoot) return;
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    state.search = input.value.trim();
+    await renderHomeRecipeSections(state);
+  });
+
+  input.addEventListener('input', debounce(async () => {
+    state.search = input.value.trim();
+    await renderHomeRecipeSections(state);
+  }, 250));
+
+  categoryRoot.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-home-category]');
+    if (!button) return;
+
+    state.categorySlug = button.dataset.homeCategory;
+    renderHomeCategories(state.categories, state.categorySlug);
+    await renderHomeRecipeSections(state);
+  });
+}
+
+function setRecipeListLoading() {
+  const container = document.querySelector('[data-recipe-list]');
+  if (!container) return;
+
+  container.innerHTML = `
+    <div class="col"><div class="content-panel loading-card"></div></div>
+    <div class="col"><div class="content-panel loading-card"></div></div>
+  `;
+}
+
+function renderHomeError() {
+  const listContainer = document.querySelector('[data-recipe-list]');
+  const categoryContainer = document.querySelector('[data-category-list]');
+  const popularContainer = document.querySelector('[data-popular-recipes]');
+
+  if (listContainer) {
+    listContainer.innerHTML = `
+      <div class="col-12">
+        <div class="content-panel empty-state">
+          <i class="bi bi-exclamation-triangle"></i>
+          <h2 class="h5 mb-1">Не успяхме да заредим рецептите</h2>
+          <p class="text-secondary mb-0">Провери Supabase настройките и опитай отново.</p>
+        </div>
+      </div>
+    `;
+  }
+
+  if (categoryContainer) {
+    categoryContainer.innerHTML = '<p class="text-secondary mb-0">Категориите не са заредени.</p>';
+  }
+
+  if (popularContainer) {
+    popularContainer.innerHTML = '<p class="text-secondary mb-0">Популярните рецепти не са заредени.</p>';
+  }
+}
+
+function debounce(callback, delay) {
+  let timerId;
+
+  return (...args) => {
+    window.clearTimeout(timerId);
+    timerId = window.setTimeout(() => callback(...args), delay);
+  };
 }
 
 async function applyPageGuard() {
