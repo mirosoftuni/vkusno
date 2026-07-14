@@ -2,6 +2,12 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import './styles.css';
+import {
+  getAdminDashboardData,
+  saveCategory,
+  updateRecipeAdminFlags,
+  updateUserRole
+} from './services/adminService.js';
 import { isSupabaseConfigured } from './config/supabase.js';
 import {
   getAuthNavbarState,
@@ -25,6 +31,7 @@ import {
   getRecipesByAuthor,
   getRecipeDetailsById,
   getRecipeDetailsBySlug,
+  slugifyTitle,
   updateRecipe,
   upsertRecipeReview
 } from './services/recipeService.js';
@@ -124,6 +131,7 @@ const categoryLinks = [
 ];
 
 const categories = [...new Set(recipes.map((recipe) => recipe.category))];
+let currentAdminState = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   setActiveNavigation();
@@ -144,7 +152,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   await renderRecipeDetails();
   await initProfilePage();
-  renderAdminRows();
+  await initAdminPage();
   bindDemoForms();
   await bindRecipeForm();
 });
@@ -755,27 +763,247 @@ function getProfileAvatarUrl(path) {
 function getRoleLabel(role) {
   return role === 'admin' ? 'Администратор' : 'Потребител';
 }
-function renderAdminRows() {
-  const tbody = document.querySelector('[data-admin-recipes]');
+async function initAdminPage() {
+  const panel = document.querySelector('[data-admin-panel]');
+  const warning = document.querySelector('[data-admin-warning]');
+  if (!panel) return;
+
+  const user = await getCurrentUser();
+  const role = user ? await getCurrentUserRole(user.id) : null;
+
+  if (role !== 'admin') {
+    panel.classList.add('d-none');
+    if (warning) {
+      warning.classList.remove('d-none');
+      warning.innerHTML = `
+        <strong>Нямаш достъп до административния панел.</strong>
+        Тази страница е достъпна само за потребители с роля <code>admin</code>.
+      `;
+    }
+    return;
+  }
+
+  panel.classList.remove('d-none');
+  warning?.classList.add('d-none');
+
+  try {
+    const state = await getAdminDashboardData();
+    renderAdminDashboard(state);
+    bindAdminActions();
+  } catch (error) {
+    console.error(error);
+    if (warning) {
+      warning.classList.remove('d-none');
+      warning.classList.replace('alert-warning', 'alert-danger');
+      warning.textContent = error?.message || 'Не успяхме да заредим административните данни.';
+    }
+  }
+}
+
+function renderAdminDashboard(state) {
+  currentAdminState = state;
+  const recipesCount = document.querySelector('[data-admin-recipes-count]');
+  const publishedCount = document.querySelector('[data-admin-published-count]');
+  const usersCount = document.querySelector('[data-admin-users-count]');
+
+  if (recipesCount) recipesCount.textContent = String(state.recipes.length);
+  if (publishedCount) {
+    publishedCount.textContent = String(state.recipes.filter((recipe) => recipe.isPublished).length);
+  }
+  if (usersCount) usersCount.textContent = String(state.users.length);
+
+  renderAdminUsers(state.users);
+  renderAdminRecipes(state.recipes);
+  renderAdminCategories(state.categories);
+}
+
+function renderAdminUsers(users) {
+  const tbody = document.querySelector('[data-admin-users]');
   if (!tbody) return;
 
-  tbody.innerHTML = recipes.map((recipe) => `
+  tbody.innerHTML = users.map((user) => `
     <tr>
       <td>
-        <div class="d-flex align-items-center gap-3">
-          <img src="${recipe.image}" alt="" class="admin-thumb">
-          <span>${recipe.title}</span>
-        </div>
+        <strong class="d-block">${escapeHtml(user.displayName)}</strong>
+        <small class="text-secondary">${escapeHtml(user.id)}</small>
       </td>
-      <td>${recipe.category}</td>
-      <td>${recipe.author}</td>
-      <td><span class="badge text-bg-success">Публикувана</span></td>
-      <td class="text-end">
-        <button class="btn btn-sm btn-outline-secondary" type="button" aria-label="Редакция"><i class="bi bi-pencil"></i></button>
-        <button class="btn btn-sm btn-outline-danger" type="button" aria-label="Изтриване"><i class="bi bi-trash"></i></button>
+      <td style="width: 150px;">
+        <select class="form-select form-select-sm" data-admin-user-role data-user-id="${escapeHtml(user.id)}">
+          <option value="user" ${user.role === 'user' ? 'selected' : ''}>user</option>
+          <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>admin</option>
+        </select>
       </td>
     </tr>
   `).join('');
+}
+
+function renderAdminRecipes(recipesList) {
+  const tbody = document.querySelector('[data-admin-recipes]');
+  if (!tbody) return;
+
+  tbody.innerHTML = recipesList.map((recipe) => `
+    <tr>
+      <td>
+        <div class="d-flex align-items-center gap-3">
+          <img src="${escapeHtml(recipe.imageUrl || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=300&q=80')}" alt="${escapeHtml(recipe.title)}" class="admin-thumb">
+          <span>
+            <strong class="d-block">${escapeHtml(recipe.title)}</strong>
+            <small class="text-secondary">${escapeHtml(recipe.categories[0]?.name || 'Без категория')}</small>
+          </span>
+        </div>
+      </td>
+      <td>${escapeHtml(recipe.authorName)}</td>
+      <td>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" data-admin-recipe-toggle data-recipe-id="${recipe.id}" data-field="is_published" ${recipe.isPublished ? 'checked' : ''}>
+          <label class="form-check-label">Публикувана</label>
+        </div>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" data-admin-recipe-toggle data-recipe-id="${recipe.id}" data-field="is_featured" ${recipe.isFeatured ? 'checked' : ''}>
+          <label class="form-check-label">Топ</label>
+        </div>
+      </td>
+      <td class="text-end">
+        <a class="btn btn-sm btn-outline-secondary" href="recipe-form.html?slug=${encodeURIComponent(recipe.slug)}" aria-label="Редакция">
+          <i class="bi bi-pencil-square"></i>
+        </a>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderAdminCategories(categoriesList) {
+  const container = document.querySelector('[data-admin-categories]');
+  if (!container) return;
+
+  container.innerHTML = categoriesList.map((category) => `
+    <article class="list-group-item d-flex justify-content-between align-items-start gap-3">
+      <span>
+        <strong class="d-block">${escapeHtml(category.name)}</strong>
+        <small class="text-secondary">${escapeHtml(category.slug)} · подредба ${category.sort_order}</small>
+        ${category.description ? `<span class="d-block text-secondary mt-1">${escapeHtml(category.description)}</span>` : ''}
+      </span>
+      <button class="btn btn-sm btn-outline-secondary" type="button" data-admin-category-edit="${category.id}">
+        <i class="bi bi-pencil"></i>
+      </button>
+    </article>
+  `).join('');
+}
+
+function bindAdminActions() {
+  const panel = document.querySelector('[data-admin-panel]');
+  const categoryForm = document.querySelector('[data-admin-category-form]');
+  if (!panel || panel.dataset.bound === 'true') return;
+  panel.dataset.bound = 'true';
+
+  panel.addEventListener('change', async (event) => {
+    const roleSelect = event.target.closest('[data-admin-user-role]');
+    const recipeToggle = event.target.closest('[data-admin-recipe-toggle]');
+
+    if (roleSelect) {
+      await handleAdminRoleChange(roleSelect);
+    }
+
+    if (recipeToggle) {
+      await handleAdminRecipeToggle(recipeToggle);
+    }
+  });
+
+  panel.addEventListener('click', (event) => {
+    const editButton = event.target.closest('[data-admin-category-edit]');
+    const resetButton = event.target.closest('[data-admin-category-reset]');
+
+    if (editButton) {
+      const category = currentAdminState?.categories.find((item) => String(item.id) === String(editButton.dataset.adminCategoryEdit));
+      if (category) fillAdminCategoryForm(categoryForm, category);
+    }
+
+    if (resetButton) {
+      resetAdminCategoryForm(categoryForm);
+    }
+  });
+
+  categoryForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    await handleAdminCategorySubmit(categoryForm);
+  });
+}
+
+async function handleAdminRoleChange(select) {
+  const previousValue = select.dataset.previousValue || (select.value === 'admin' ? 'user' : 'admin');
+  select.disabled = true;
+
+  try {
+    await updateUserRole(select.dataset.userId, select.value);
+    select.dataset.previousValue = select.value;
+  } catch (error) {
+    console.error(error);
+    select.value = previousValue;
+    window.alert(error?.message || 'Не успяхме да обновим ролята.');
+  } finally {
+    select.disabled = false;
+  }
+}
+
+async function handleAdminRecipeToggle(input) {
+  input.disabled = true;
+
+  try {
+    await updateRecipeAdminFlags(input.dataset.recipeId, {
+      [input.dataset.field]: input.checked
+    });
+  } catch (error) {
+    console.error(error);
+    input.checked = !input.checked;
+    window.alert(error?.message || 'Не успяхме да обновим рецептата.');
+  } finally {
+    input.disabled = false;
+  }
+}
+
+async function handleAdminCategorySubmit(form) {
+  setFormLoading(form, true);
+  setFormAlert(form, '', 'success', true);
+
+  try {
+    const name = form.querySelector('#category_name').value.trim();
+    const slugInput = form.querySelector('#category_slug');
+    const savedCategory = await saveCategory({
+      id: form.querySelector('#category_id').value || null,
+      name,
+      slug: slugInput.value.trim() || slugifyTitle(name),
+      description: form.querySelector('#category_description').value.trim(),
+      sortOrder: Number(form.querySelector('#category_sort_order').value) || 0
+    });
+
+    const state = await getAdminDashboardData();
+    renderAdminDashboard(state);
+    resetAdminCategoryForm(form);
+    setFormAlert(form, `Категорията "${savedCategory.name}" е запазена.`, 'success');
+  } catch (error) {
+    console.error(error);
+    setFormAlert(form, error?.message || 'Не успяхме да запазим категорията.', 'danger');
+  } finally {
+    setFormLoading(form, false);
+  }
+}
+
+function fillAdminCategoryForm(form, category) {
+  if (!form) return;
+
+  form.querySelector('#category_id').value = category.id;
+  form.querySelector('#category_name').value = category.name || '';
+  form.querySelector('#category_slug').value = category.slug || '';
+  form.querySelector('#category_description').value = category.description || '';
+  form.querySelector('#category_sort_order').value = category.sort_order || 0;
+}
+
+function resetAdminCategoryForm(form) {
+  if (!form) return;
+
+  form.reset();
+  form.querySelector('#category_id').value = '';
+  setFormAlert(form, '', 'success', true);
 }
 
 function bindSearch() {
