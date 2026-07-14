@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Вкусно.bg е кулинарен портал с български рецепти, категории, търсене и любими идеи за всеки ден.">
     <title>Вкусно.bg | Рецепти за всеки ден</title>
+    <link rel="stylesheet" href="/src/app.css">
   </head>
   <body>
     <div class="top-bar py-2">
       <div class="container d-flex flex-wrap justify-content-between gap-2">
         <span><i class="bi bi-calendar-heart"></i> Нови рецепти всеки ден</span>
         <span class="d-flex gap-3">
-          <a href="recipe-form.html"><i class="bi bi-plus-circle"></i> Добави рецепта</a>
-          <a href="login.html"><i class="bi bi-person-circle"></i> Вход</a>
+          <a class="d-none" data-auth-only href="recipe-form.html"><i class="bi bi-plus-circle"></i> Добави рецепта</a>
+          <a data-guest-only href="login.html"><i class="bi bi-person-circle"></i> Вход</a>
         </span>
       </div>
     </div>
@@ -31,9 +32,9 @@
             <li class="nav-item"><a class="nav-link" data-nav href="index.html">Рецепти</a></li>
             <li class="nav-item"><a class="nav-link" href="index.html#categories">Категории</a></li>
             <li class="nav-item"><a class="nav-link" href="index.html#popular">Популярни</a></li>
-            <li class="nav-item"><a class="nav-link" data-nav href="recipe-form.html">Добави рецепта</a></li>
-            <li class="nav-item"><a class="nav-link" data-nav href="profile.html">Профил</a></li>
-            <li class="nav-item"><a class="nav-link" data-nav href="admin.html">Админ</a></li>
+            <li class="nav-item d-none" data-auth-only><a class="nav-link" data-nav href="recipe-form.html">Добави рецепта</a></li>
+            <li class="nav-item d-none" data-auth-only><a class="nav-link" data-nav href="profile.html">Профил</a></li>
+            <li class="nav-item d-none" data-admin-only><a class="nav-link" data-nav href="admin.html">Админ</a></li>
           </ul>
           <div class="d-flex gap-2 ms-lg-3" data-auth-nav>
             <a class="btn btn-outline-success btn-sm" href="login.html">Вход</a>
@@ -49,7 +50,7 @@
           <p class="text-uppercase fw-bold small mb-2">Кулинарен портал на български</p>
           <h1>Рецепти, идеи и вдъхновение за вкусна домашна кухня.</h1>
           <p class="lead mt-3">Търси по име или описание, избери категория и открий нови рецепти от общността на Вкусно.bg.</p>
-          <a class="btn btn-success btn-lg mt-3" href="recipe-form.html">
+          <a class="btn btn-success btn-lg mt-3 d-none" data-auth-only href="recipe-form.html">
             <i class="bi bi-plus-circle"></i>
             Добави рецепта
           </a>
@@ -88,10 +89,10 @@
         <section class="col-lg-6">
           <div class="section-title">
             <div>
-              <p class="eyebrow mb-1">От Supabase</p>
+              <p class="eyebrow mb-1">Прясно добавени</p>
               <h2>Нови рецепти</h2>
             </div>
-            <a class="btn btn-outline-success" href="recipe-form.html">
+            <a class="btn btn-outline-success d-none" data-auth-only href="recipe-form.html">
               <i class="bi bi-pencil-square"></i>
               Сподели твоя
             </a>
@@ -119,14 +120,14 @@
         <div class="row g-4 pb-4">
           <div class="col-md-5">
             <h2 class="site-footer-title h5">Вкусно.bg</h2>
-            <p class="mb-0">Кулинарен портал с български рецепти, Supabase данни, Bootstrap компоненти и responsive layout.</p>
+            <p class="mb-0">Кулинарен портал с български рецепти, категории и любими домашни идеи.</p>
           </div>
           <div class="col-md-3">
             <h3 class="site-footer-title h6">Навигация</h3>
             <div class="d-grid gap-2">
               <a href="index.html">Рецепти</a>
-              <a href="recipe-form.html">Добави рецепта</a>
-              <a href="profile.html">Профил</a>
+              <a class="d-none" data-auth-only href="recipe-form.html">Добави рецепта</a>
+              <a class="d-none" data-auth-only href="profile.html">Профил</a>
             </div>
           </div>
           <div class="col-md-4">
@@ -136,7 +137,7 @@
         </div>
         <div class="footer-bottom py-3 d-flex flex-column flex-md-row justify-content-between gap-2">
           <span>© 2026 Вкусно.bg</span>
-          <span>Vanilla JavaScript · Bootstrap · Vite</span>
+          <span>Домашни рецепти за всеки ден</span>
         </div>
       </div>
     </footer>

@@ -1,7 +1,5 @@
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap-icons/font/bootstrap-icons.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
-import './styles.css';
+import { initI18n } from './i18n.js';
 import {
   getAdminDashboardData,
   saveCategory,
@@ -134,6 +132,7 @@ const categories = [...new Set(recipes.map((recipe) => recipe.category))];
 let currentAdminState = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+  initI18n();
   setActiveNavigation();
   const shouldRenderPage = await initAuth();
   if (!shouldRenderPage) {
@@ -164,6 +163,7 @@ async function initAuth() {
       return false;
     }
 
+    markAuthReady();
     await renderAuthNavigation();
     bindLoginForm();
     bindRegisterForm();
@@ -172,8 +172,15 @@ async function initAuth() {
     return true;
   } catch (error) {
     console.error(error);
+    markAuthReady();
     renderAuthNavigationFallback();
     return true;
+  }
+}
+
+function markAuthReady() {
+  if (document.body.dataset.pageAccess) {
+    document.body.dataset.authReady = 'true';
   }
 }
 
@@ -381,6 +388,9 @@ async function renderAuthNavigation() {
   if (!containers.length) return;
 
   const { user, displayName } = await getAuthNavbarState();
+  const role = user ? await getNavigationRole(user.id) : null;
+  updateProtectedNavigation({ user, role });
+
   const html = user
     ? `
       <a class="btn btn-outline-success btn-sm auth-user-pill" href="profile.html">
@@ -403,11 +413,36 @@ async function renderAuthNavigation() {
 }
 
 function renderAuthNavigationFallback() {
+  updateProtectedNavigation({ user: null, role: null });
+
   document.querySelectorAll('[data-auth-nav]').forEach((container) => {
     container.innerHTML = `
       <a class="btn btn-outline-success btn-sm" href="login.html">Вход</a>
       <a class="btn btn-success btn-sm" href="register.html">Регистрация</a>
     `;
+  });
+}
+
+async function getNavigationRole(userId) {
+  try {
+    return await getCurrentUserRole(userId);
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
+}
+
+function updateProtectedNavigation({ user, role }) {
+  document.querySelectorAll('[data-guest-only]').forEach((element) => {
+    element.classList.toggle('d-none', Boolean(user));
+  });
+
+  document.querySelectorAll('[data-auth-only]').forEach((element) => {
+    element.classList.toggle('d-none', !user);
+  });
+
+  document.querySelectorAll('[data-admin-only]').forEach((element) => {
+    element.classList.toggle('d-none', role !== 'admin');
   });
 }
 

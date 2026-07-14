@@ -17,6 +17,11 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+body[data-page-access]:not([data-auth-ready="true"]) main,
+body[data-page-access]:not([data-auth-ready="true"]) footer {
+  visibility: hidden;
+}
+
 a {
   text-decoration: none;
 }
@@ -67,6 +72,31 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.language-switcher {
+  display: inline-flex;
+  padding: 0.15rem;
+  border: 1px solid var(--vk-border);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.language-option {
+  min-width: 38px;
+  padding: 0.24rem 0.55rem;
+  color: var(--vk-muted);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.language-option.active {
+  color: #fff;
+  background: var(--vk-green);
 }
 
 .page-shell {
@@ -148,16 +178,21 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.72rem 0;
+  padding: 0.78rem 0.85rem;
   color: var(--vk-ink);
+  border: 0;
   border-bottom: 1px solid var(--vk-border);
+  border-radius: 7px;
   font-weight: 650;
+  transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
 }
 
 .category-button {
   width: 100%;
   background: transparent;
+  font: inherit;
   text-align: left;
+  appearance: none;
 }
 
 .category-link:last-child {
@@ -166,6 +201,17 @@ a {
 
 .category-link i:first-child {
   color: var(--vk-green);
+}
+
+.category-link:hover,
+.category-link:focus-visible {
+  color: var(--vk-green-dark);
+  background: var(--vk-cream);
+}
+
+.category-link:hover i:last-child,
+.category-link:focus-visible i:last-child {
+  transform: translateX(2px);
 }
 
 .top-recipe {

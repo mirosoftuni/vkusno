@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Административен панел за рецепти във Вкусно.bg.">
     <title>Админ | Вкусно.bg</title>
+    <link rel="stylesheet" href="/src/app.css">
+    <style>body[data-page-access]:not([data-auth-ready="true"]) main,body[data-page-access]:not([data-auth-ready="true"]) footer{visibility:hidden}</style>
   </head>
   <body data-page-access="auth">
     <div class="top-bar py-2">
@@ -12,7 +14,7 @@
         <span><i class="bi bi-shield-check"></i> Административен изглед</span>
         <span class="d-flex gap-3">
           <a href="index.html"><i class="bi bi-house"></i> Към сайта</a>
-          <a href="recipe-form.html"><i class="bi bi-plus-circle"></i> Добави рецепта</a>
+          <a class="d-none" data-auth-only href="recipe-form.html"><i class="bi bi-plus-circle"></i> Добави рецепта</a>
         </span>
       </div>
     </div>
@@ -28,9 +30,9 @@
             <li class="nav-item"><a class="nav-link" data-nav href="index.html">Рецепти</a></li>
             <li class="nav-item"><a class="nav-link" href="index.html#categories">Категории</a></li>
             <li class="nav-item"><a class="nav-link" href="index.html#top">Топ рецепти</a></li>
-            <li class="nav-item"><a class="nav-link" data-nav href="recipe-form.html">Добави рецепта</a></li>
-            <li class="nav-item"><a class="nav-link" data-nav href="profile.html">Профил</a></li>
-            <li class="nav-item"><a class="nav-link" data-nav href="admin.html">Админ</a></li>
+            <li class="nav-item d-none" data-auth-only><a class="nav-link" data-nav href="recipe-form.html">Добави рецепта</a></li>
+            <li class="nav-item d-none" data-auth-only><a class="nav-link" data-nav href="profile.html">Профил</a></li>
+            <li class="nav-item d-none" data-admin-only><a class="nav-link" data-nav href="admin.html">Админ</a></li>
           </ul>
           <div class="d-flex gap-2 ms-lg-3" data-auth-nav></div>
         </div>
